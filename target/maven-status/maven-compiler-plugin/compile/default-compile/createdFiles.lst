@@ -1,0 +1,10 @@
+br\edu\ifpe\sistemaeditais\model\Campus.class
+br\edu\ifpe\sistemaeditais\service\CadastroServidor.class
+br\edu\ifpe\sistemaeditais\util\SenhaUtil.class
+br\edu\ifpe\sistemaeditais\model\Sexo.class
+br\edu\ifpe\sistemaeditais\model\Servidor.class
+br\edu\ifpe\sistemaeditais\repository\ServidorRepository.class
+br\edu\ifpe\sistemaeditais\model\AreaFormacao.class
+br\edu\ifpe\sistemaeditais\model\Perfil.class
+br\edu\ifpe\sistemaeditais\Main.class
+br\edu\ifpe\sistemaeditais\model\Titulacao.class
