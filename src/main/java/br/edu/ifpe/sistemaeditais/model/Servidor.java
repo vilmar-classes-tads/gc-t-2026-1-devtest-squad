@@ -1,5 +1,7 @@
 package br.edu.ifpe.sistemaeditais.model;
 
+import java.util.ArrayList;
+import java.util.List;
 
 public class Servidor{
     private String nomeCompleto;
@@ -13,6 +15,8 @@ public class Servidor{
     private String nomeSocial;
     private String linkLattes;
     private String telefone;
+
+    private List<Perfil> perfis = new ArrayList<>();
 
     public Servidor(String nomeCompleto, String cpf, String emailInstitucional, String senha, Campus campus, AreaFormacao areaFormacao, Titulacao titulacao){
         this.nomeCompleto = nomeCompleto;
@@ -88,7 +92,7 @@ public class Servidor{
         this.nomeSocial = nomeSocial;
     }
 
-    public String getlinkLattes(){
+    public String getLinkLattes(){
         return linkLattes;
     }
 
@@ -104,6 +108,11 @@ public class Servidor{
         this.telefone = telefone;
     }
 
-
-
+    public List<Perfil> getPerfis() { return perfis; }
+ 
+    public void adicionarPerfil(Perfil perfil) {
+        if (!perfis.contains(perfil)) {
+            perfis.add(perfil);
+        }
+    }
 }
