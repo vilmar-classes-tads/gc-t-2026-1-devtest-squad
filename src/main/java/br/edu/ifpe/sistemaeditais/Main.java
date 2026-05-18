@@ -60,34 +60,61 @@ public class Main {
         System.out.print("Senha (mínimo 6 caracteres): ");
         String senha = scanner.nextLine();
 
-        System.out.println("\nCampi disponíveis:");
-        for (Campus c : Campus.values()) {
-            System.out.println("  - " + c.name());
+        Campus campus = null;
+        while (campus == null) {
+            System.out.println("\nCampi disponíveis:");
+            for (Campus c : Campus.values()) {
+                System.out.println("   - " + c.name());
+            }
+            System.out.print("Digite o Campus exatamente como listado: ");
+            try {
+                campus = Campus.valueOf(scanner.nextLine().toUpperCase().trim());
+            } catch (IllegalArgumentException e) {
+                System.out.println("\n[ERRO] Campus inválido! Digite exatamente uma das opções da lista.");
+            }
         }
-        System.out.print("Digite o Campus exatamente como listado: ");
-        Campus campus = Campus.valueOf(scanner.nextLine().toUpperCase().trim());
-    
 
-        System.out.println("\nÁreas de Formação disponíveis:");
-        for (AreaFormacao af : AreaFormacao.values()) {
-            System.out.println("  - " + af.name());
+        AreaFormacao areaFormacao = null;
+        while (areaFormacao == null) {
+            System.out.println("\nÁreas de Formação disponíveis:");
+            for (AreaFormacao af : AreaFormacao.values()) {
+                System.out.println("   - " + af.name());
+            }
+            System.out.print("Digite a Área de Formação exatamente como listado: ");
+            try {
+                areaFormacao = AreaFormacao.valueOf(scanner.nextLine().toUpperCase().trim());
+            } catch (IllegalArgumentException e) {
+                System.out.println("\n[ERRO] Área de Formação inválida! Digite exatamente uma das opções da lista.");
+            }
         }
-        System.out.print("Digite a Área de Formação exatamente como listado: ");
-        AreaFormacao areaFormacao = AreaFormacao.valueOf(scanner.nextLine().toUpperCase().trim());
 
-        System.out.println("\nTitulações disponíveis:");
-        for (Titulacao t : Titulacao.values()) {
-            System.out.println("  - " + t.name());
+        Titulacao titulacao = null;
+        while (titulacao == null) {
+            System.out.println("\nTitulações disponíveis:");
+            for (Titulacao t : Titulacao.values()) {
+                System.out.println("   - " + t.name());
+            }
+            System.out.print("Digite a titulação exatamente como listado: ");
+            try {
+                titulacao = Titulacao.valueOf(scanner.nextLine().toUpperCase().trim());
+            } catch (IllegalArgumentException e) {
+                System.out.println("\n[ERRO] Titulação inválida! Digite exatamente uma das opções da lista.");
+            }
         }
-        System.out.print("Digite a titulação exatamente como listado: ");
-        Titulacao titulacao = Titulacao.valueOf(scanner.nextLine().toUpperCase().trim());
         
-        System.out.println("\nSexo:");
-        for (Sexo s : Sexo.values()) {
-            System.out.println("  - " + s.name());
+        Sexo sexo = null;
+        while (sexo == null) {
+            System.out.println("\nSexo:");
+            for (Sexo s : Sexo.values()) {
+                System.out.println("   - " + s.name());
+            }
+            System.out.print("Digite o sexo exatamente como listado: ");
+            try {
+                sexo = Sexo.valueOf(scanner.nextLine().toUpperCase().trim());
+            } catch (IllegalArgumentException e) {
+                System.out.println("\n[ERRO] Opção de sexo inválida! Digite exatamente uma das opções da lista.");
+            }
         }
-        System.out.print("Digite o sexo exatamente como listado: ");
-        Sexo sexo = Sexo.valueOf(scanner.nextLine().toUpperCase().trim());
 
         System.out.print("Nome Social (opcional — pressione Enter para pular): ");
         String nomeSocial = scanner.nextLine();
