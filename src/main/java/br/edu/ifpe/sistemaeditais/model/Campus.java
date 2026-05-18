@@ -1,0 +1,21 @@
+package br.edu.ifpe.sistemaeditais.model;
+
+public enum Campus{
+    ABREU_E_LIMA,
+    AFOGADOS_DA_INGAZEIRA,
+    BARREIROS,
+    BELO_JARDIM,
+    CABO_DE_SANTO_AGOSTINHO,
+    CARUARU,
+    GARANHUNS,
+    IGARASSU,
+    IPOJUCA,
+    JABOATAO_DOS_GUARARAPES,
+    OLINDA,
+    PALMARES,
+    PAULISTA,
+    PESQUEIRA,
+    RECIFE,
+    VITORIA_DE_SANTO_ANTAO,
+    EAD
+}
