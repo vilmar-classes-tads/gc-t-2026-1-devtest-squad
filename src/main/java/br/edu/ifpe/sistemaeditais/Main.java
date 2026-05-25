@@ -1,22 +1,53 @@
 package br.edu.ifpe.sistemaeditais;
 
 import br.edu.ifpe.sistemaeditais.model.*;
+import br.edu.ifpe.sistemaeditais.repository.ServidorRepository;
 import br.edu.ifpe.sistemaeditais.service.CadastroServidor;
+import br.edu.ifpe.sistemaeditais.service.EditalService;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.Scanner;
 
 public class Main {
 
-    public static void main(String[] args) {
+    private static Servidor usuarioLogado = null;
+    private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
+    public static void main(String[] args) {
         CadastroServidor cadastroServidor = new CadastroServidor();
+        ServidorRepository servidorRepository = new ServidorRepository();
+        EditalService editalService = new EditalService();
         Scanner scanner = new Scanner(System.in);
+
+        // Criando um Administrador padrão inicial para testes do menu restrito
+        Servidor adminPadrao = new Servidor("Administrador Geral", "00000000000", "admin@ifpe.edu.br", "admin123", Campus.RECIFE, AreaFormacao.CIENCIAS_EXATAS_E_DA_TERRA, Titulacao.DOUTORADO);
+        adminPadrao.adicionarPerfil(Perfil.ROLE_ADMIN);
+        servidorRepository.salvar(adminPadrao);
+
         int opcao = 0;
 
         do {
             System.out.println("\n   SISTEMA DE EDITAIS - IFPE   ");
             System.out.println("================================");
-            System.out.println("1. Cadastrar Novo Servidor");
-            System.out.println("2. Sair");
+            if (usuarioLogado == null) {
+                System.out.println("Status: Não autenticado");
+                System.out.println("1. Cadastrar Novo Servidor");
+                System.out.println("2. Acessar o Sistema (Login)");
+            } else {
+                System.out.println("Logado como: " + usuarioLogado.getNomeCompleto() + " (" + usuarioLogado.getEmailInstitucional() + ")");
+                System.out.println("1. Cadastrar Novo Servidor");
+                System.out.println("2. Fazer Logout");
+                
+                // Exibição condicional do menu para ROLE_ADMIN
+                if (usuarioLogado.getPerfis().contains(Perfil.ROLE_ADMIN)) {
+                    System.out.println("--- ÁREA DO ADMINISTRADOR ---");
+                    System.out.println("3. Cadastrar Novo Edital");
+                    System.out.println("4. Editar Edital Existente");
+                    System.out.println("5. Listar Todos os Editais");
+                }
+            }
+            System.out.println("6. Sair");
             System.out.print("Escolha uma opção: ");
 
             try {
@@ -30,22 +61,137 @@ public class Main {
                 case 1:
                     cadastrarServidor(scanner, cadastroServidor);
                     break;
-
                 case 2:
+                    if (usuarioLogado == null) {
+                        realizarLogin(scanner, servidorRepository);
+                    } else {
+                        usuarioLogado = null;
+                        System.out.println("\nLogout efetuado com sucesso.");
+                    }
+                    break;
+                case 3:
+                    if (validarAdminVisual()) cadastrarEdital(scanner, editalService);
+                    break;
+                case 4:
+                    if (validarAdminVisual()) editarEdital(scanner, editalService);
+                    break;
+                case 5:
+                    if (validarAdminVisual()) listarEditais(editalService);
+                    break;
+                case 6:
                     System.out.println("\nEncerrando o sistema...");
                     break;
-
                 default:
                     System.out.println("Opção inválida.");
             }
 
-        } while (opcao != 2);
+        } while (opcao != 6);
 
         scanner.close();
     }
 
-    private static void cadastrarServidor(Scanner scanner, CadastroServidor cadastroServidor) {
+    private static boolean validarAdminVisual() {
+        if (usuarioLogado == null || !usuarioLogado.getPerfis().contains(Perfil.ROLE_ADMIN)) {
+            System.out.println("\n[ERRO] Acesso negado. Opção restrita a administradores.");
+            return false;
+        }
+        return true;
+    }
 
+    private static void realizarLogin(Scanner scanner, ServidorRepository repository) {
+        System.out.println("\n--- Login ---");
+        System.out.print("E-mail Institucional: ");
+        String email = scanner.nextLine().trim();
+        System.out.print("Senha: ");
+        String senha = scanner.nextLine();
+
+        Servidor servidor = repository.buscaPorEmail(email);
+        if (servidor != null && servidor.getSenha() != null) {
+            usuarioLogado = servidor;
+            System.out.println("\nAutenticação realizada com sucesso!");
+        } else {
+            System.out.println("\n[ERRO] Usuário ou senha inválidos.");
+        }
+    }
+
+    private static void cadastrarEdital(Scanner scanner, EditalService service) {
+        System.out.println("\n--- Cadastro de Edital ---");
+        System.out.print("Número do Edital (Ex: 01/2026): ");
+        String numero = scanner.nextLine();
+        System.out.print("Título do Edital: ");
+        String titulo = scanner.nextLine();
+        
+        System.out.print("Ano: ");
+        int ano = Integer.parseInt(scanner.nextLine());
+
+        LocalDate iniSub = lerData(scanner, "Data de Início da Submissão (DD/MM/AAAA): ");
+        LocalDate fimSub = lerData(scanner, "Data de Fim da Submissão (DD/MM/AAAA): ");
+        LocalDate iniAv = lerData(scanner, "Data de Início da Avaliação (DD/MM/AAAA): ");
+        LocalDate fimAv = lerData(scanner, "Data de Fim da Avaliação (DD/MM/AAAA): ");
+
+        try {
+            Edital novo = new Edital(numero, titulo, ano, iniSub, fimSub, iniAv, fimAv);
+            service.criarEdital(novo, usuarioLogado);
+            System.out.println("\nEdital publicado com sucesso!");
+        } catch (Exception e) {
+            System.out.println("\nErro ao salvar edital: " + e.getMessage());
+        }
+    }
+
+    private static void editarEdital(Scanner scanner, EditalService service) {
+        System.out.println("\n--- Edição de Edital ---");
+        System.out.print("Informe o Número do Edital que deseja alterar: ");
+        String numeroOriginal = scanner.nextLine();
+
+        System.out.print("Novo Título: ");
+        String titulo = scanner.nextLine();
+        System.out.print("Novo Ano: ");
+        int ano = Integer.parseInt(scanner.nextLine());
+
+        LocalDate iniSub = lerData(scanner, "Nova Data de Início da Submissão (DD/MM/AAAA): ");
+        LocalDate fimSub = lerData(scanner, "Nova Data de Fim da Submissão (DD/MM/AAAA): ");
+        LocalDate iniAv = lerData(scanner, "Nova Data de Início da Avaliação (DD/MM/AAAA): ");
+        LocalDate fimAv = lerData(scanner, "Nova Data de Fim da Avaliação (DD/MM/AAAA): ");
+
+        try {
+            Edital atualizado = new Edital(numeroOriginal, titulo, ano, iniSub, fimSub, iniAv, fimAv);
+            service.editarEdital(numeroOriginal, atualizado, usuarioLogado);
+            System.out.println("\nEdital atualizado com sucesso!");
+        } catch (Exception e) {
+            System.out.println("\nErro ao editar edital: " + e.getMessage());
+        }
+    }
+
+    private static void listarEditais(EditalService service) {
+        System.out.println("\n--- Listagem Administrativa de Editais ---");
+        try {
+            var lista = service.listarEditais(usuarioLogado);
+            if (lista.isEmpty()) {
+                System.out.println("Nenhum edital cadastrado até o momento.");
+                return;
+            }
+            for (Edital e : lista) {
+                System.out.printf("Edital Nº: %s | %s (%d)%n", e.getNumero(), e.getTitulo(), e.getAno());
+                System.out.printf("  > Submissões: %s até %s%n", e.getDataInicioSubmissao().format(DATE_FORMATTER), e.getDataFimSubmissao().format(DATE_FORMATTER));
+                System.out.printf("  > Avaliações: %s até %s%n%n", e.getDataInicioAvaliacao().format(DATE_FORMATTER), e.getDataFimAvaliacao().format(DATE_FORMATTER));
+            }
+        } catch (Exception e) {
+            System.out.println("Erro: " + e.getMessage());
+        }
+    }
+
+    private static LocalDate lerData(Scanner scanner, String mensagem) {
+        while (true) {
+            System.out.print(mensagem);
+            try {
+                return LocalDate.parse(scanner.nextLine().trim(), DATE_FORMATTER);
+            } catch (DateTimeParseException e) {
+                System.out.println("[ERRO] Formato inválido. Use o padrão DD/MM/AAAA.");
+            }
+        }
+    }
+
+    private static void cadastrarServidor(Scanner scanner, CadastroServidor cadastroServidor) {
         System.out.println("\n--- Formulário de Cadastro ---");
 
         System.out.print("Nome Completo: ");
@@ -145,15 +291,9 @@ public class Main {
 
         try {
             cadastroServidor.cadastrar(novoServidor);
-
             System.out.println("\nServidor cadastrado com sucesso!");
-            System.out.println("Perfis atribuídos: ROLE_COORDENADOR, ROLE_AVALIADOR");
-            System.out.println("Redirecionando para a tela de login...");
-            System.out.println("Utilize seu e-mail e senha para acessar o sistema.\n");
-
         } catch (IllegalArgumentException e) {
             System.out.println("\nErro de validação: " + e.getMessage());
-            System.out.println("Os dados informados foram mantidos. Corrija o campo indicado e tente novamente.\n");
         } catch (Exception e) {
             System.out.println("\nErro inesperado: " + e.getMessage());
         }
