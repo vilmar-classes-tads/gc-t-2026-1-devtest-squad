@@ -25,7 +25,7 @@ public class Main {
         adminPadrao.adicionarPerfil(Perfil.ROLE_ADMIN);
         servidorRepository.salvar(adminPadrao);
 
-        int opcao = 0;
+        int opcao = -1;
 
         do {
             System.out.println("\n   SISTEMA DE EDITAIS - IFPE   ");
@@ -47,11 +47,16 @@ public class Main {
                     System.out.println("5. Listar Todos os Editais");
                 }
             }
-            System.out.println("6. Sair");
+            System.out.println("0. Sair");
             System.out.print("Escolha uma opção: ");
 
             try {
-                opcao = Integer.parseInt(scanner.nextLine());
+                String entradaOpcao = scanner.nextLine().trim();
+                if (entradaOpcao.isEmpty()) {
+                    System.out.println("Nenhuma opção foi digitada.");
+                    continue;
+                }
+                opcao = Integer.parseInt(entradaOpcao);
             } catch (NumberFormatException e) {
                 System.out.println("Digite apenas números.");
                 continue;
@@ -78,14 +83,14 @@ public class Main {
                 case 5:
                     if (validarAdminVisual()) listarEditais(editalService);
                     break;
-                case 6:
+                case 0:
                     System.out.println("\nEncerrando o sistema...");
                     break;
                 default:
                     System.out.println("Opção inválida.");
             }
 
-        } while (opcao != 6);
+        } while (opcao != 0);
 
         scanner.close();
     }
@@ -106,7 +111,7 @@ public class Main {
         String senha = scanner.nextLine();
 
         Servidor servidor = repository.buscaPorEmail(email);
-        if (servidor != null && servidor.getSenha() != null) {
+        if (servidor != null && servidor.getSenha() != null && servidor.getSenha().equals(senha)) {
             usuarioLogado = servidor;
             System.out.println("\nAutenticação realizada com sucesso!");
         } else {
@@ -116,13 +121,39 @@ public class Main {
 
     private static void cadastrarEdital(Scanner scanner, EditalService service) {
         System.out.println("\n--- Cadastro de Edital ---");
-        System.out.print("Número do Edital (Ex: 01/2026): ");
-        String numero = scanner.nextLine();
-        System.out.print("Título do Edital: ");
-        String titulo = scanner.nextLine();
         
-        System.out.print("Ano: ");
-        int ano = Integer.parseInt(scanner.nextLine());
+        String numero = "";
+        while (numero.isEmpty()) {
+            System.out.print("Número do Edital (Ex: 01/2026): ");
+            numero = scanner.nextLine().trim();
+            if (numero.isEmpty()) {
+                System.out.println("[ERRO] O número do edital é obrigatório.");
+            }
+        }
+
+        String titulo = "";
+        while (titulo.isEmpty()) {
+            System.out.print("Título do Edital: ");
+            titulo = scanner.nextLine().trim();
+            if (titulo.isEmpty()) {
+                System.out.println("[ERRO] O título do edital é obrigatório.");
+            }
+        }
+        
+        int ano = 0;
+        while (ano == 0) {
+            System.out.print("Ano: ");
+            try {
+                String entradaAno = scanner.nextLine().trim();
+                if (entradaAno.isEmpty()) {
+                    System.out.println("[ERRO] O ano não pode ser vazio.");
+                    continue;
+                }
+                ano = Integer.parseInt(entradaAno);
+            } catch (NumberFormatException e) {
+                System.out.println("[ERRO] Digite um ano válido com caracteres numéricos.");
+            }
+        }
 
         LocalDate iniSub = lerData(scanner, "Data de Início da Submissão (DD/MM/AAAA): ");
         LocalDate fimSub = lerData(scanner, "Data de Fim da Submissão (DD/MM/AAAA): ");
@@ -140,13 +171,39 @@ public class Main {
 
     private static void editarEdital(Scanner scanner, EditalService service) {
         System.out.println("\n--- Edição de Edital ---");
-        System.out.print("Informe o Número do Edital que deseja alterar: ");
-        String numeroOriginal = scanner.nextLine();
+        
+        String numeroOriginal = "";
+        while (numeroOriginal.isEmpty()) {
+            System.out.print("Informe o Número do Edital que deseja alterar: ");
+            numeroOriginal = scanner.nextLine().trim();
+            if (numeroOriginal.isEmpty()) {
+                System.out.println("[ERRO] Você precisa especificar o número do edital.");
+            }
+        }
 
-        System.out.print("Novo Título: ");
-        String titulo = scanner.nextLine();
-        System.out.print("Novo Ano: ");
-        int ano = Integer.parseInt(scanner.nextLine());
+        String titulo = "";
+        while (titulo.isEmpty()) {
+            System.out.print("Novo Título: ");
+            titulo = scanner.nextLine().trim();
+            if (titulo.isEmpty()) {
+                System.out.println("[ERRO] O título não pode ser vazio.");
+            }
+        }
+
+        int ano = 0;
+        while (ano == 0) {
+            System.out.print("Novo Ano: ");
+            try {
+                String entradaAno = scanner.nextLine().trim();
+                if (entradaAno.isEmpty()) {
+                    System.out.println("[ERRO] O ano não pode ser vazio.");
+                    continue;
+                }
+                ano = Integer.parseInt(entradaAno);
+            } catch (NumberFormatException e) {
+                System.out.println("[ERRO] Digite um ano válido.");
+            }
+        }
 
         LocalDate iniSub = lerData(scanner, "Nova Data de Início da Submissão (DD/MM/AAAA): ");
         LocalDate fimSub = lerData(scanner, "Nova Data de Fim da Submissão (DD/MM/AAAA): ");
@@ -154,8 +211,8 @@ public class Main {
         LocalDate fimAv = lerData(scanner, "Nova Data de Fim da Avaliação (DD/MM/AAAA): ");
 
         try {
-            Edital atualizado = new Edital(numeroOriginal, titulo, ano, iniSub, fimSub, iniAv, fimAv);
-            service.editarEdital(numeroOriginal, atualizado, usuarioLogado);
+            Edital updated = new Edital(numeroOriginal, titulo, ano, iniSub, fimSub, iniAv, fimAv);
+            service.editarEdital(numeroOriginal, updated, usuarioLogado);
             System.out.println("\nEdital atualizado com sucesso!");
         } catch (Exception e) {
             System.out.println("\nErro ao editar edital: " + e.getMessage());
@@ -183,8 +240,13 @@ public class Main {
     private static LocalDate lerData(Scanner scanner, String mensagem) {
         while (true) {
             System.out.print(mensagem);
+            String entrada = scanner.nextLine().trim();
+            if (entrada.isEmpty()) {
+                System.out.println("[ERRO] Este campo de data é obrigatório e não pode ser vazio.");
+                continue;
+            }
             try {
-                return LocalDate.parse(scanner.nextLine().trim(), DATE_FORMATTER);
+                return LocalDate.parse(entrada, DATE_FORMATTER);
             } catch (DateTimeParseException e) {
                 System.out.println("[ERRO] Formato inválido. Use o padrão DD/MM/AAAA.");
             }
