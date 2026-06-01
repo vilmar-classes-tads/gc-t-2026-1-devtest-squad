@@ -1,13 +1,20 @@
 package br.edu.ifpe.sistemaeditais;
 
-import br.edu.ifpe.sistemaeditais.model.*;
-import br.edu.ifpe.sistemaeditais.repository.ServidorRepository;
-import br.edu.ifpe.sistemaeditais.service.CadastroServidor;
-import br.edu.ifpe.sistemaeditais.service.EditalService;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.Scanner;
+
+import br.edu.ifpe.sistemaeditais.model.AreaFormacao;
+import br.edu.ifpe.sistemaeditais.model.Campus;
+import br.edu.ifpe.sistemaeditais.model.Edital;
+import br.edu.ifpe.sistemaeditais.model.Perfil;
+import br.edu.ifpe.sistemaeditais.model.Servidor;
+import br.edu.ifpe.sistemaeditais.model.Sexo;
+import br.edu.ifpe.sistemaeditais.model.Titulacao;
+import br.edu.ifpe.sistemaeditais.repository.ServidorRepository;
+import br.edu.ifpe.sistemaeditais.service.CadastroServidor;
+import br.edu.ifpe.sistemaeditais.service.EditalService;
 
 public class Main {
 
@@ -64,7 +71,7 @@ public class Main {
 
             switch (opcao) {
                 case 1:
-                    cadastrarServidor(scanner, cadastroServidor);
+                    cadastrarServidor(scanner, cadastroServidor, servidorRepository);
                     break;
                 case 2:
                     if (usuarioLogado == null) {
@@ -253,20 +260,54 @@ public class Main {
         }
     }
 
-    private static void cadastrarServidor(Scanner scanner, CadastroServidor cadastroServidor) {
+    private static void cadastrarServidor(Scanner scanner, CadastroServidor cadastroServidor, ServidorRepository repository) {
         System.out.println("\n--- Formulário de Cadastro ---");
 
         System.out.print("Nome Completo: ");
         String nome = scanner.nextLine();
 
-        System.out.print("CPF (apenas 11 dígitos numéricos): ");
-        String cpf = scanner.nextLine();
+        String cpf = null;
+        while (cpf == null) {
+            System.out.print("CPF (apenas 11 dígitos numéricos): ");
+            String entrada = scanner.nextLine().trim();
+            try {
+                if (!entrada.matches("\\d{11}"))
+                    throw new IllegalArgumentException("CPF inválido. Informe exatamente 11 dígitos numéricos.");
+                if (repository.buscaPorCpf(entrada) != null)
+                    throw new IllegalArgumentException("CPF já cadastrado.");
+                cpf = entrada;
+            } catch (IllegalArgumentException e) {
+                System.out.println("\n[ERRO] " + e.getMessage());
+            }
+        }
 
-        System.out.print("E-mail Institucional: ");
-        String email = scanner.nextLine();
+        String email = null;
+        while (email == null) {
+            System.out.print("E-mail Institucional: ");
+            String entrada = scanner.nextLine().trim();
+            try {
+                if (!entrada.matches("^[\\w.+-]+@[\\w.-]+\\.[a-zA-Z]{2,}$"))
+                    throw new IllegalArgumentException("E-mail institucional inválido.");
+                if (repository.buscaPorEmail(entrada) != null) 
+                throw new IllegalArgumentException("E-mail já cadastrado.");
+                email = entrada;
+            } catch (IllegalArgumentException e) {
+                System.out.println("\n[ERRO] " + e.getMessage());
+            }
+        }
 
-        System.out.print("Senha (mínimo 6 caracteres): ");
-        String senha = scanner.nextLine();
+        String senha = null;
+        while (senha == null) {
+            System.out.print("Senha (mínimo 6 caracteres): ");
+            String entrada = scanner.nextLine();
+            try {
+                if (entrada.length() < 6)
+                    throw new IllegalArgumentException("A senha deve ter no mínimo 6 caracteres.");
+                senha = entrada;
+            } catch (IllegalArgumentException e) {
+                System.out.println("\n[ERRO] " + e.getMessage());
+            }
+        }
 
         Campus campus = null;
         while (campus == null) {
@@ -351,13 +392,8 @@ public class Main {
             novoServidor.setTelefone(telefone);
         }
 
-        try {
-            cadastroServidor.cadastrar(novoServidor);
-            System.out.println("\nServidor cadastrado com sucesso!");
-        } catch (IllegalArgumentException e) {
-            System.out.println("\nErro de validação: " + e.getMessage());
-        } catch (Exception e) {
-            System.out.println("\nErro inesperado: " + e.getMessage());
-        }
+       
+        cadastroServidor.cadastrar(novoServidor);
+        System.out.println("\nServidor cadastrado com sucesso!");
     }
 }
