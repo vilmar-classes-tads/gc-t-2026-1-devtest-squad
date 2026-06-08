@@ -4,6 +4,8 @@ import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.Scanner;
+import java.util.ArrayList;
+import java.util.List;
 
 import br.edu.ifpe.sistemaeditais.model.AreaFormacao;
 import br.edu.ifpe.sistemaeditais.model.Campus;
@@ -12,9 +14,14 @@ import br.edu.ifpe.sistemaeditais.model.Perfil;
 import br.edu.ifpe.sistemaeditais.model.Servidor;
 import br.edu.ifpe.sistemaeditais.model.Sexo;
 import br.edu.ifpe.sistemaeditais.model.Titulacao;
+import br.edu.ifpe.sistemaeditais.model.AreaTematica;
+import br.edu.ifpe.sistemaeditais.model.ODS;
+import br.edu.ifpe.sistemaeditais.model.Projeto;
 import br.edu.ifpe.sistemaeditais.repository.ServidorRepository;
+import br.edu.ifpe.sistemaeditais.repository.ProjetoRepository;
 import br.edu.ifpe.sistemaeditais.service.CadastroServidor;
 import br.edu.ifpe.sistemaeditais.service.EditalService;
+import br.edu.ifpe.sistemaeditais.service.ProjetoService;
 
 public class Main {
 
@@ -25,6 +32,8 @@ public class Main {
         CadastroServidor cadastroServidor = new CadastroServidor();
         ServidorRepository servidorRepository = new ServidorRepository();
         EditalService editalService = new EditalService();
+        ProjetoRepository projetoRepository = new ProjetoRepository();
+        ProjetoService projetoService = new ProjetoService(projetoRepository);
         Scanner scanner = new Scanner(System.in);
 
         // Criando um Administrador padrão inicial para testes do menu restrito
@@ -33,6 +42,11 @@ public class Main {
         servidorRepository.salvar(adminPadrao);
 
         int opcao = -1;
+
+        // Coordenador padrão para testes de submissão de projetos
+        Servidor coordPadrao = new Servidor("Coordenador Teste", "11111111111","coordenador@ifpe.edu.br", "coord123", Campus.RECIFE, AreaFormacao.ENGENHARIAS, Titulacao.MESTRADO);
+        coordPadrao.adicionarPerfil(Perfil.ROLE_COORDENADOR);
+        servidorRepository.salvar(coordPadrao);
 
         do {
             System.out.println("\n   SISTEMA DE EDITAIS - IFPE   ");
@@ -52,6 +66,14 @@ public class Main {
                     System.out.println("3. Cadastrar Novo Edital");
                     System.out.println("4. Editar Edital Existente");
                     System.out.println("5. Listar Todos os Editais");
+                    System.out.println("6. Listar Todos os Projetos");
+                }
+
+                if (usuarioLogado.getPerfis().contains(Perfil.ROLE_COORDENADOR)) {
+                    System.out.println("--- ÁREA DO COORDENADOR ---");
+                    System.out.println("7. Submeter Novo Projeto");
+                    System.out.println("8. Editar Projeto (Rascunho / Em Correção)");
+                    System.out.println("9. Listar Meus Projetos");
                 }
             }
             System.out.println("0. Sair");
@@ -89,6 +111,18 @@ public class Main {
                     break;
                 case 5:
                     if (validarAdminVisual()) listarEditais(editalService);
+                    break;
+                case 6:
+                    if (validarAdminVisual()) listarTodosProjetos(projetoService);
+                    break;
+                case 7:
+                    if (validarCoordenadorVisual()) submeterProjeto(scanner, projetoService);
+                    break;
+                case 8:
+                    if (validarCoordenadorVisual()) editarProjeto(scanner, projetoService, projetoRepository);
+                    break;
+                case 9:
+                    if (validarCoordenadorVisual()) listarMeusProjetos(projetoService);
                     break;
                 case 0:
                     System.out.println("\nEncerrando o sistema...");
@@ -395,5 +429,188 @@ public class Main {
        
         cadastroServidor.cadastrar(novoServidor);
         System.out.println("\nServidor cadastrado com sucesso!");
+    }
+
+    private static boolean validarCoordenadorVisual() {
+        if (usuarioLogado == null
+                || (!usuarioLogado.getPerfis().contains(Perfil.ROLE_COORDENADOR)
+                        && !usuarioLogado.getPerfis().contains(Perfil.ROLE_ADMIN))) {
+            System.out.println("\n[ERRO] Acesso negado. Opção restrita a coordenadores.");
+            return false;
+        }
+        return true;
+    }
+
+    private static void submeterProjeto(Scanner scanner, ProjetoService service) {
+        System.out.println("\n--- Submissão de Novo Projeto ---");
+
+        String titulo   = lerCampoObrigatorio(scanner, "Título do Projeto: ");
+        String resumo   = lerCampoObrigatorio(scanner, "Resumo: ");
+        String palavras = lerCampoObrigatorio(scanner, "Palavras-chave (separe por vírgula): ");
+        String publico  = lerCampoObrigatorio(scanner, "Público-alvo: ");
+        AreaTematica area = lerAreaTematica(scanner);
+        Campus campus     = lerCampusProjeto(scanner);
+        List<ODS> ods     = lerODS(scanner);
+        boolean aceite    = lerAceiteTermoCompromisso(scanner);
+
+        try {
+            Projeto projeto = service.criarProjeto(titulo, resumo, palavras, publico,
+                    area, campus, ods, aceite, usuarioLogado);
+            System.out.println("\nProjeto submetido com sucesso! Status: " + projeto.getStatus());
+        } catch (Exception e) {
+            System.out.println("\n[ERRO] " + e.getMessage());
+        }
+    }
+
+    private static void editarProjeto(Scanner scanner, ProjetoService service, ProjetoRepository repository) {
+        System.out.println("\n--- Edição de Projeto ---");
+
+        listarMeusProjetos(service);
+
+        String tituloBusca = lerCampoObrigatorio(scanner, "\nDigite o título exato do projeto que deseja editar: ");
+        Projeto projeto = repository.buscarPorTitulo(tituloBusca);
+
+        if (projeto == null) {
+            System.out.println("[ERRO] Projeto não encontrado.");
+            return;
+        }
+
+        System.out.println("Status atual: " + projeto.getStatus());
+
+        String titulo   = lerCampoObrigatorio(scanner, "Novo Título: ");
+        String resumo   = lerCampoObrigatorio(scanner, "Novo Resumo: ");
+        String palavras = lerCampoObrigatorio(scanner, "Novas Palavras-chave: ");
+        String publico  = lerCampoObrigatorio(scanner, "Novo Público-alvo: ");
+        AreaTematica area = lerAreaTematica(scanner);
+        Campus campus     = lerCampusProjeto(scanner);
+        List<ODS> ods     = lerODS(scanner);
+        boolean aceite    = lerAceiteTermoCompromisso(scanner);
+
+        try {
+            service.editarProjeto(projeto, titulo, resumo, palavras, publico,
+                    area, campus, ods, aceite, usuarioLogado);
+            System.out.println("\nProjeto atualizado com sucesso!");
+        } catch (IllegalStateException e) {
+            System.out.println("\n[ERRO] " + e.getMessage());
+        } catch (SecurityException e) {
+            System.out.println("\n[ACESSO NEGADO] " + e.getMessage());
+        }
+    }
+
+    private static void listarMeusProjetos(ProjetoService service) {
+        System.out.println("\n--- Meus Projetos ---");
+        try {
+            List<Projeto> projetos = service.listarProjetosDoCoordenador(usuarioLogado);
+            if (projetos.isEmpty()) {
+                System.out.println("Nenhum projeto encontrado.");
+                return;
+            }
+            for (Projeto p : projetos) {
+                System.out.printf("Título: %s | Status: %s | Área: %s | Campus: %s%n",
+                        p.getTitulo(), p.getStatus(), p.getAreaTematica(), p.getCampus());
+                System.out.printf("  > Palavras-chave: %s%n", p.getPalavrasChave());
+                System.out.printf("  > Público-alvo: %s%n", p.getPublicoAlvo());
+                System.out.printf("  > Aceite do Termo: %s%n%n",
+                        p.isAceitouTermoDeCompromisso() ? "Sim" : "Não");
+            }
+        } catch (Exception e) {
+            System.out.println("[ERRO] " + e.getMessage());
+        }
+    }
+
+    private static void listarTodosProjetos(ProjetoService service) {
+        System.out.println("\n--- Listagem Geral de Projetos ---");
+        try {
+            List<Projeto> projetos = service.listarTodos(usuarioLogado);
+            if (projetos.isEmpty()) {
+                System.out.println("Nenhum projeto cadastrado.");
+                return;
+            }
+            for (Projeto p : projetos) {
+                System.out.printf("Título: %s | Status: %s | Coordenador: %s | Campus: %s%n",
+                        p.getTitulo(), p.getStatus(),
+                        p.getCoordenador().getNomeCompleto(), p.getCampus());
+            }
+        } catch (Exception e) {
+            System.out.println("[ERRO] " + e.getMessage());
+        }
+    }
+
+    private static String lerCampoObrigatorio(Scanner scanner, String mensagem) {
+        String valor = "";
+        while (valor.isEmpty()) {
+            System.out.print(mensagem);
+            valor = scanner.nextLine().trim();
+            if (valor.isEmpty()) System.out.println("[ERRO] Este campo é obrigatório.");
+        }
+        return valor;
+    }
+
+    private static AreaTematica lerAreaTematica(Scanner scanner) {
+        AreaTematica area = null;
+        while (area == null) {
+            System.out.println("\nÁreas Temáticas disponíveis:");
+            for (AreaTematica at : AreaTematica.values()) {
+                System.out.println("  - " + at.name());
+            }
+            System.out.print("Digite a Área Temática exatamente como listado: ");
+            try {
+                area = AreaTematica.valueOf(scanner.nextLine().toUpperCase().trim());
+            } catch (IllegalArgumentException e) {
+                System.out.println("[ERRO] Área Temática inválida.");
+            }
+        }
+        return area;
+    }
+
+    private static Campus lerCampusProjeto(Scanner scanner) {
+        Campus campus = null;
+        while (campus == null) {
+            System.out.println("\nCampi disponíveis:");
+            for (Campus c : Campus.values()) {
+                System.out.println("  - " + c.name());
+            }
+            System.out.print("Digite o Campus: ");
+            try {
+                campus = Campus.valueOf(scanner.nextLine().toUpperCase().trim());
+            } catch (IllegalArgumentException e) {
+                System.out.println("[ERRO] Campus inválido.");
+            }
+        }
+        return campus;
+    }
+
+    private static List<ODS> lerODS(Scanner scanner) {
+        List<ODS> selecionados = new ArrayList<>();
+        System.out.println("\nODS disponíveis:");
+        ODS[] todos = ODS.values();
+        for (int i = 0; i < todos.length; i++) {
+            System.out.printf("  %d. %s%n", i + 1, todos[i].getDescricao());
+        }
+        System.out.println("Digite os números dos ODS separados por vírgula (ex: 1,4,8) ou 0 para nenhum:");
+        System.out.print("> ");
+        String entrada = scanner.nextLine().trim();
+        if (!entrada.equals("0") && !entrada.isEmpty()) {
+            for (String parte : entrada.split(",")) {
+                try {
+                    int idx = Integer.parseInt(parte.trim()) - 1;
+                    if (idx >= 0 && idx < todos.length) selecionados.add(todos[idx]);
+                    else System.out.println("[AVISO] Número fora do intervalo ignorado: " + (idx + 1));
+                } catch (NumberFormatException e) {
+                    System.out.println("[AVISO] Entrada ignorada: " + parte.trim());
+                }
+            }
+        }
+        return selecionados;
+    }
+
+    private static boolean lerAceiteTermoCompromisso(Scanner scanner) {
+        while (true) {
+            System.out.print("\nAceite o Termo de Compromisso? (S/N): ");
+            String resp = scanner.nextLine().trim().toUpperCase();
+            if (resp.equals("S")) return true;
+            if (resp.equals("N")) return false;
+            System.out.println("[ERRO] Digite S para Sim ou N para Não.");
+        }
     }
 }
