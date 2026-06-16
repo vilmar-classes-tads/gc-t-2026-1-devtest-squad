@@ -1,0 +1,6 @@
+Avaliação 1:
+
+1 - vocês implementaram toda a issue numa mesma branch? não criaram subissues?
+2 - Deveria ter um "Branch protection rules" para a main também.
+
+cada problema desse precisa ser corrigido via Issue.
