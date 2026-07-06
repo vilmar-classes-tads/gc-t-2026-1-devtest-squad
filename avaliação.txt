@@ -1,6 +1,15 @@
 Avaliação 1:
 
 1 - vocês implementaram toda a issue numa mesma branch? não criaram subissues?
+
+Para cada issue criamos uma branch diferente, mas chegou um ponto que tinha várias 
+abertas no github quando estavamos criando para a última atividade, aí acabamos apagando
+as que estavam lá para não ficar poluída, não imaginavamos que ia usar ela para rastrear 
+nossas atividades para atribuir nota e sim os commits.
+
+Consideramos que o senhor avalie os pull requests closed pois lá contem o histórico das 
+branchs que foram fechados/mesclados, é a evidência de que as nossas branchs existiram.
+
 2 - Deveria ter um "Branch protection rules" para a main também.
 
 cada problema desse precisa ser corrigido via Issue.
