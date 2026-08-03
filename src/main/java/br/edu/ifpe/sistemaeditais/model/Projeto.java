@@ -15,6 +15,10 @@ public class Projeto {
     private StatusProjeto status;
     private Servidor coordenador;
 
+    public Projeto() {
+        this.status = StatusProjeto.RASCUNHO;
+    }
+
     public Projeto(String titulo, String resumo, String palavrasChave,
                    String publicoAlvo, AreaTematica areaTematica, Campus campus,
                    List<ODS> odsSelecionados, boolean aceitouTermoDeCompromisso,

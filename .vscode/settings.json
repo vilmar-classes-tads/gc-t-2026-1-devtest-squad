@@ -1,5 +1,6 @@
 {
     "workbench.editor.autoLockGroups": {
         "default": true
-    }
+    },
+    "java.configuration.updateBuildConfiguration": "interactive"
 }

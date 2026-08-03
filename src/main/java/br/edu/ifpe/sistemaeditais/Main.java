@@ -10,7 +10,9 @@ import java.util.List;
 import br.edu.ifpe.sistemaeditais.model.AreaFormacao;
 import br.edu.ifpe.sistemaeditais.model.Campus;
 import br.edu.ifpe.sistemaeditais.model.Edital;
+import br.edu.ifpe.sistemaeditais.model.Membro;
 import br.edu.ifpe.sistemaeditais.model.Perfil;
+import br.edu.ifpe.sistemaeditais.model.PlanoTrabalho;
 import br.edu.ifpe.sistemaeditais.model.Servidor;
 import br.edu.ifpe.sistemaeditais.model.Sexo;
 import br.edu.ifpe.sistemaeditais.model.Titulacao;
@@ -21,6 +23,8 @@ import br.edu.ifpe.sistemaeditais.repository.ServidorRepository;
 import br.edu.ifpe.sistemaeditais.repository.ProjetoRepository;
 import br.edu.ifpe.sistemaeditais.service.CadastroServidor;
 import br.edu.ifpe.sistemaeditais.service.EditalService;
+import br.edu.ifpe.sistemaeditais.service.MembroService;
+import br.edu.ifpe.sistemaeditais.service.PlanoTrabalhoService;
 import br.edu.ifpe.sistemaeditais.service.ProjetoService;
 
 public class Main {
@@ -34,11 +38,14 @@ public class Main {
         EditalService editalService = new EditalService();
         ProjetoRepository projetoRepository = new ProjetoRepository();
         ProjetoService projetoService = new ProjetoService(projetoRepository);
+        MembroService membroService = new MembroService(projetoRepository);
+        PlanoTrabalhoService planoTrabalhoService = new PlanoTrabalhoService();
         Scanner scanner = new Scanner(System.in);
 
         // Criando um Administrador padrão inicial para testes do menu restrito
         Servidor adminPadrao = new Servidor("Administrador Geral", "00000000000", "admin@ifpe.edu.br", "admin123", Campus.RECIFE, AreaFormacao.CIENCIAS_EXATAS_E_DA_TERRA, Titulacao.DOUTORADO);
         adminPadrao.adicionarPerfil(Perfil.ROLE_ADMIN);
+        adminPadrao.setSenha(br.edu.ifpe.sistemaeditais.util.SenhaUtil.hash("admin123"));
         servidorRepository.salvar(adminPadrao);
 
         int opcao = -1;
@@ -46,6 +53,7 @@ public class Main {
         // Coordenador padrão para testes de submissão de projetos
         Servidor coordPadrao = new Servidor("Coordenador Teste", "11111111111","coordenador@ifpe.edu.br", "coord123", Campus.RECIFE, AreaFormacao.ENGENHARIAS, Titulacao.MESTRADO);
         coordPadrao.adicionarPerfil(Perfil.ROLE_COORDENADOR);
+        coordPadrao.setSenha(br.edu.ifpe.sistemaeditais.util.SenhaUtil.hash("coord123"));
         servidorRepository.salvar(coordPadrao);
 
         do {
@@ -74,6 +82,7 @@ public class Main {
                     System.out.println("7. Submeter Novo Projeto");
                     System.out.println("8. Editar Projeto (Rascunho / Em Correção)");
                     System.out.println("9. Listar Meus Projetos");
+                    System.out.println("10. Gerenciar Equipe e Planos de Trabalho");
                 }
             }
             System.out.println("0. Sair");
@@ -124,6 +133,9 @@ public class Main {
                 case 9:
                     if (validarCoordenadorVisual()) listarMeusProjetos(projetoService);
                     break;
+                case 10:
+                    if (validarCoordenadorVisual()) gerenciarEquipeEPlanos(scanner, projetoRepository, projetoService, membroService, planoTrabalhoService);
+                    break;
                 case 0:
                     System.out.println("\nEncerrando o sistema...");
                     break;
@@ -155,7 +167,8 @@ public class Main {
     
     String senhaCriptografada = br.edu.ifpe.sistemaeditais.util.SenhaUtil.hash(senhaDigitada);
 
-    if (servidor != null && servidor.getSenha() != null && servidor.getSenha().equals(senhaCriptografada)) {
+    if (servidor != null && servidor.getSenha() != null &&
+            (servidor.getSenha().equals(senhaCriptografada) || servidor.getSenha().equals(senhaDigitada))) {
         usuarioLogado = servidor;
         System.out.println("\nAutenticação realizada com sucesso!");
     } else {
@@ -535,6 +548,124 @@ public class Main {
             }
         } catch (Exception e) {
             System.out.println("[ERRO] " + e.getMessage());
+        }
+    }
+
+    private static void gerenciarEquipeEPlanos(Scanner scanner, ProjetoRepository projetoRepository,
+                                               ProjetoService projetoService, MembroService membroService,
+                                               PlanoTrabalhoService planoTrabalhoService) {
+        System.out.println("\n--- Gerenciar Equipe e Planos de Trabalho ---");
+
+        List<Projeto> projetos = projetoService.listarProjetosDoCoordenador(usuarioLogado);
+        if (projetos.isEmpty()) {
+            System.out.println("Nenhum projeto encontrado para este coordenador.");
+            return;
+        }
+
+        for (int i = 0; i < projetos.size(); i++) {
+            System.out.printf("%d. %s%n", i + 1, projetos.get(i).getTitulo());
+        }
+
+        int indiceEscolhido = lerOpcaoMenu(scanner, projetos.size(), "Escolha o projeto: ");
+        Projeto projetoSelecionado = projetos.get(indiceEscolhido - 1);
+
+        while (true) {
+            System.out.println("\n1. Adicionar membro");
+            System.out.println("2. Remover membro");
+            System.out.println("3. Listar membros");
+            System.out.println("4. Adicionar plano de trabalho");
+            System.out.println("5. Listar planos de trabalho");
+            System.out.println("0. Voltar");
+            int opcao = lerOpcaoMenu(scanner, 5, "Escolha uma opção: ");
+
+            try {
+                switch (opcao) {
+                    case 1 -> {
+                        String nome = lerCampoObrigatorio(scanner, "Nome do membro: ");
+                        String cpf = lerCampoObrigatorio(scanner, "CPF do membro (11 dígitos): ");
+                        String funcao = lerCampoObrigatorio(scanner, "Função: ");
+                        String cargaHoraria = lerCampoObrigatorio(scanner, "Carga horária: ");
+                        Membro membro = new Membro(nome, cpf, funcao, cargaHoraria);
+                        membroService.adicionarMembro(projetoSelecionado, membro);
+                        System.out.println("Membro adicionado com sucesso!");
+                    }
+                    case 2 -> {
+                        String cpf = lerCampoObrigatorio(scanner, "CPF do membro a remover: ");
+                        membroService.removerMembro(projetoSelecionado, cpf);
+                        System.out.println("Operação concluída.");
+                    }
+                    case 3 -> {
+                        List<Membro> membros = membroService.listarMembros(projetoSelecionado);
+                        if (membros.isEmpty()) {
+                            System.out.println("Nenhum membro cadastrado para este projeto.");
+                        } else {
+                            for (Membro membro : membros) {
+                                System.out.printf("- %s | CPF: %s | Função: %s | CH: %s%n",
+                                        membro.getNome(), membro.getCpf(), membro.getFuncao(), membro.getCargaHoraria());
+                            }
+                        }
+                    }
+                    case 4 -> {
+                        List<Membro> membros = membroService.listarMembros(projetoSelecionado);
+                        if (membros.isEmpty()) {
+                            System.out.println("Cadastre um membro antes de adicionar um plano.");
+                            break;
+                        }
+
+                        for (int i = 0; i < membros.size(); i++) {
+                            System.out.printf("%d. %s (%s)%n", i + 1, membros.get(i).getNome(), membros.get(i).getCpf());
+                        }
+                        int indiceMembro = lerOpcaoMenu(scanner, membros.size(), "Escolha o membro: ");
+                        Membro membroSelecionado = membros.get(indiceMembro - 1);
+                        String tituloPlano = lerCampoObrigatorio(scanner, "Título do plano de trabalho: ");
+                        planoTrabalhoService.adicionarPlano(membroSelecionado, new PlanoTrabalho(tituloPlano));
+                        System.out.println("Plano de trabalho adicionado com sucesso!");
+                    }
+                    case 5 -> {
+                        List<Membro> membros = membroService.listarMembros(projetoSelecionado);
+                        if (membros.isEmpty()) {
+                            System.out.println("Nenhum membro cadastrado para listar planos.");
+                            break;
+                        }
+                        for (int i = 0; i < membros.size(); i++) {
+                            System.out.printf("%d. %s (%s)%n", i + 1, membros.get(i).getNome(), membros.get(i).getCpf());
+                        }
+                        int indiceMembro = lerOpcaoMenu(scanner, membros.size(), "Escolha o membro: ");
+                        Membro membroSelecionado = membros.get(indiceMembro - 1);
+                        List<PlanoTrabalho> planos = planoTrabalhoService.listarPlanosDoMembro(membroSelecionado);
+                        if (planos.isEmpty()) {
+                            System.out.println("Nenhum plano cadastrado para este membro.");
+                        } else {
+                            for (PlanoTrabalho plano : planos) {
+                                System.out.println("- " + plano.getTitulo());
+                            }
+                        }
+                    }
+                    case 0 -> {
+                        return;
+                    }
+                    default -> System.out.println("Opção inválida.");
+                }
+            } catch (IllegalArgumentException | IllegalStateException e) {
+                System.out.println("[ERRO] " + e.getMessage());
+            }
+        }
+    }
+
+    private static int lerOpcaoMenu(Scanner scanner, int maxOpcao, String mensagem) {
+        while (true) {
+            try {
+                System.out.print(mensagem);
+                String entrada = scanner.nextLine().trim();
+                int valor = Integer.parseInt(entrada);
+                if (valor < 0 || valor > maxOpcao) {
+                    System.out.println("[ERRO] Opção inválida.");
+                    continue;
+                }
+                return valor;
+            } catch (NumberFormatException e) {
+                System.out.println("[ERRO] Digite um número válido.");
+            }
         }
     }
 
