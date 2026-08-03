@@ -49,7 +49,8 @@ public class MainTest {
 
         String titulo;
         try {
-            titulo = invocarLerCampoObrigatorio("\nRobótica na Rede Pública\n");
+            // Envia a primeira linha vazia (\n) e na segunda o título completo esperado pelo assertEquals
+            titulo = invocarLerCampoObrigatorio("\nRobótica Educacional na Rede Pública\n");
         } finally {
             System.setOut(saidaOriginal);
         }

@@ -157,24 +157,24 @@ public class Main {
     }
 
     private static void realizarLogin(Scanner scanner, ServidorRepository repository) {
-    System.out.println("\n--- Login ---");
-    System.out.print("E-mail Institucional: ");
-    String email = scanner.nextLine().trim();
-    System.out.print("Senha: ");
-    String senhaDigitada = scanner.nextLine();
+        System.out.println("\n--- Login ---");
+        System.out.print("E-mail Institucional: ");
+        String email = scanner.nextLine().trim();
+        System.out.print("Senha: ");
+        String senhaDigitada = scanner.nextLine();
 
-    Servidor servidor = repository.buscaPorEmail(email);
-    
-    String senhaCriptografada = br.edu.ifpe.sistemaeditais.util.SenhaUtil.hash(senhaDigitada);
+        Servidor servidor = repository.buscaPorEmail(email);
+        
+        String senhaCriptografada = br.edu.ifpe.sistemaeditais.util.SenhaUtil.hash(senhaDigitada);
 
-    if (servidor != null && servidor.getSenha() != null &&
-            (servidor.getSenha().equals(senhaCriptografada) || servidor.getSenha().equals(senhaDigitada))) {
-        usuarioLogado = servidor;
-        System.out.println("\nAutenticação realizada com sucesso!");
-    } else {
-        System.out.println("\n[ERRO] Usuário ou senha inválidos.");
+        if (servidor != null && servidor.getSenha() != null &&
+                (servidor.getSenha().equals(senhaCriptografada) || servidor.getSenha().equals(senhaDigitada))) {
+            usuarioLogado = servidor;
+            System.out.println("\nAutenticação realizada com sucesso!");
+        } else {
+            System.out.println("\n[ERRO] Usuário ou senha inválidos.");
+        }
     }
-}
     private static void cadastrarEdital(Scanner scanner, EditalService service) {
         System.out.println("\n--- Cadastro de Edital ---");
         
@@ -310,12 +310,20 @@ public class Main {
     }
 
     private static void cadastrarServidor(Scanner scanner, CadastroServidor cadastroServidor, ServidorRepository repository) {
-        System.out.println("\n--- Formulário de Cadastro ---");
+    System.out.println("\n--- Formulário de Cadastro ---");
 
-        System.out.print("Nome Completo: ");
-        String nome = scanner.nextLine();
+    // Usa o lerCampoObrigatorio que centraliza a leitura e a mensagem de erro esperada
+    String nome = lerCampoObrigatorio(scanner, "Nome Completo: ");
 
-        String cpf = null;
+    String cpf = null;
+    while (cpf == null) {
+            System.out.print("Nome Completo: ");
+            nome = scanner.nextLine().trim();
+            if (nome.isEmpty()) {
+                System.out.println("[ERRO] O nome completo é obrigatório.");
+            }
+        }
+
         while (cpf == null) {
             System.out.print("CPF (apenas 11 dígitos numéricos): ");
             String entrada = scanner.nextLine().trim();
@@ -338,7 +346,7 @@ public class Main {
                 if (!entrada.matches("^[\\w.+-]+@[\\w.-]+\\.[a-zA-Z]{2,}$"))
                     throw new IllegalArgumentException("E-mail institucional inválido.");
                 if (repository.buscaPorEmail(entrada) != null) 
-                throw new IllegalArgumentException("E-mail já cadastrado.");
+                    throw new IllegalArgumentException("E-mail já cadastrado.");
                 email = entrada;
             } catch (IllegalArgumentException e) {
                 System.out.println("\n[ERRO] " + e.getMessage());
@@ -669,12 +677,14 @@ public class Main {
         }
     }
 
-    private static String lerCampoObrigatorio(Scanner scanner, String mensagem) {
+    public static String lerCampoObrigatorio(Scanner scanner, String mensagem) {
         String valor = "";
         while (valor.isEmpty()) {
             System.out.print(mensagem);
             valor = scanner.nextLine().trim();
-            if (valor.isEmpty()) System.out.println("[ERRO] Este campo é obrigatório.");
+            if (valor.isEmpty()) {
+                System.out.println("[ERRO] Este campo é obrigatório.");
+            }
         }
         return valor;
     }
