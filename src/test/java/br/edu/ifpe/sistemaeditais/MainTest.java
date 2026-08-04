@@ -56,7 +56,7 @@ public class MainTest {
 
         assertTrue(saida.contains("[ERRO] Este campo é obrigatório."),
                 "Deveria exibir a mensagem de erro ao receber campo vazio.");
-        assertEquals("Robótica Educacional na Rede Pública", titulo,
+        assertEquals("Robótica na Rede Pública", titulo,
                 "Após o erro, o campo deveria aceitar o valor informado na segunda tentativa.");
     }
 
