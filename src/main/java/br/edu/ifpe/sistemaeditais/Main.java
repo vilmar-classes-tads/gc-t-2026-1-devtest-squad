@@ -145,21 +145,23 @@ public class Main {
     }
 
     private static void realizarLogin(Scanner scanner, ServidorRepository repository) {
-        System.out.println("\n--- Login ---");
-        System.out.print("E-mail Institucional: ");
-        String email = scanner.nextLine().trim();
-        System.out.print("Senha: ");
-        String senha = scanner.nextLine();
+    System.out.println("\n--- Login ---");
+    System.out.print("E-mail Institucional: ");
+    String email = scanner.nextLine().trim();
+    System.out.print("Senha: ");
+    String senhaDigitada = scanner.nextLine();
 
-        Servidor servidor = repository.buscaPorEmail(email);
-        if (servidor != null && servidor.getSenha() != null && servidor.getSenha().equals(senha)) {
-            usuarioLogado = servidor;
-            System.out.println("\nAutenticação realizada com sucesso!");
-        } else {
-            System.out.println("\n[ERRO] Usuário ou senha inválidos.");
-        }
+    Servidor servidor = repository.buscaPorEmail(email);
+    
+    String senhaCriptografada = br.edu.ifpe.sistemaeditais.util.SenhaUtil.hash(senhaDigitada);
+
+    if (servidor != null && servidor.getSenha() != null && servidor.getSenha().equals(senhaCriptografada)) {
+        usuarioLogado = servidor;
+        System.out.println("\nAutenticação realizada com sucesso!");
+    } else {
+        System.out.println("\n[ERRO] Usuário ou senha inválidos.");
     }
-
+}
     private static void cadastrarEdital(Scanner scanner, EditalService service) {
         System.out.println("\n--- Cadastro de Edital ---");
         
