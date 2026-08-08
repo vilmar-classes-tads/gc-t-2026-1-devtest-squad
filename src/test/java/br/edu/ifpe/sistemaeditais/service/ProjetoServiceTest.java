@@ -23,10 +23,14 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import br.edu.ifpe.sistemaeditais.model.AreaFormacao;
 import br.edu.ifpe.sistemaeditais.model.AreaTematica;
 import br.edu.ifpe.sistemaeditais.model.Campus;
+import br.edu.ifpe.sistemaeditais.model.FuncaoMembro;
+import br.edu.ifpe.sistemaeditais.model.Membro;
 import br.edu.ifpe.sistemaeditais.model.ODS;
 import br.edu.ifpe.sistemaeditais.model.Perfil;
+import br.edu.ifpe.sistemaeditais.model.PlanoDeTrabalho;
 import br.edu.ifpe.sistemaeditais.model.Projeto;
 import br.edu.ifpe.sistemaeditais.model.Servidor;
+import br.edu.ifpe.sistemaeditais.model.Sexo;
 import br.edu.ifpe.sistemaeditais.model.StatusProjeto;
 import br.edu.ifpe.sistemaeditais.model.Titulacao;
 import br.edu.ifpe.sistemaeditais.repository.ProjetoRepository;
@@ -438,5 +442,183 @@ public class ProjetoServiceTest {
 
         assertEquals("Apenas administradores podem listar todos os projetos.", ex.getMessage());
         verifyNoInteractions(projetoRepository);
+    }
+
+    private Servidor servidorBaseEquipe() {
+        Servidor servidor = new Servidor(
+                "Maria da Silva Souza",
+                "12345678901",
+                "maria.silva@ifpe.edu.br",
+                "senha123",
+                Campus.RECIFE,
+                AreaFormacao.ENGENHARIAS,
+                Titulacao.MESTRADO
+        );
+        servidor.setSexo(Sexo.FEMININO);
+        servidor.adicionarPerfil(Perfil.ROLE_COORDENADOR);
+        return servidor;
+    }
+
+    private Projeto projetoBaseEquipe(Servidor coordenadorDoProjeto) {
+        return new Projeto(
+                "Robótica Educacional na Rede Pública",
+                "Projeto de extensão para introduzir conceitos de robótica e programação em "
+                        + "escolas públicas da região metropolitana do Recife.",
+                "robótica, educação, extensão, tecnologia",
+                "Estudantes do ensino médio da rede pública",
+                AreaTematica.ENGENHARIAS,
+                Campus.RECIFE,
+                List.of(ODS.ODS_4_EDUCACAO_QUALIDADE, ODS.ODS_9_INDUSTRIA_INOVACAO),
+                true,
+                coordenadorDoProjeto
+        );
+    }
+
+    private Membro membroValido(String cpf) {
+        return new Membro("João Pedro Alves", cpf, FuncaoMembro.BOLSISTA, 20);
+    }
+
+    // CT-065 — Adicionar membro com dados válidos
+    @Test
+    public void ct065_adicionarMembroComDadosValidos() {
+        Servidor coordenadorProjeto = servidorBaseEquipe();
+        Projeto projeto = projetoBaseEquipe(coordenadorProjeto);
+        Membro membro = membroValido("98765432100");
+
+        assertDoesNotThrow(() -> projetoService.adicionarMembro(projeto, membro, coordenadorProjeto));
+
+        assertEquals(1, projeto.getEquipe().size());
+        assertTrue(projeto.getEquipe().contains(membro));
+    }
+
+    // CT-066 — Remover membro da equipe
+    @Test
+    public void ct066_removerMembroDaEquipe() {
+        Servidor coordenadorProjeto = servidorBaseEquipe();
+        Projeto projeto = projetoBaseEquipe(coordenadorProjeto);
+        Membro membro = membroValido("98765432100");
+        projetoService.adicionarMembro(projeto, membro, coordenadorProjeto);
+
+        assertDoesNotThrow(() -> projetoService.removerMembro(projeto, "98765432100", coordenadorProjeto));
+
+        assertTrue(projeto.getEquipe().isEmpty());
+    }
+
+    // CT-067 — Adicionar plano de trabalho dentro do limite permitido
+    @Test
+    public void ct067_adicionarPlanoDeTrabalhoDentroDoLimitePermitido() {
+        Servidor coordenadorProjeto = servidorBaseEquipe();
+        Projeto projeto = projetoBaseEquipe(coordenadorProjeto);
+        Membro membro = membroValido("98765432100");
+        projetoService.adicionarMembro(projeto, membro, coordenadorProjeto);
+
+        PlanoDeTrabalho plano = new PlanoDeTrabalho(
+                "Plano de Iniciação Científica",
+                "Atividades de apoio à pesquisa em robótica educacional."
+        );
+
+        assertDoesNotThrow(() ->
+                projetoService.adicionarPlanoDeTrabalho(projeto, "98765432100", plano, coordenadorProjeto));
+
+        assertEquals(1, membro.getPlanosDeTrabalho().size());
+    }
+
+    // CT-068 — Permitir cadastro até o limite de 4 planos
+    @Test
+    public void ct068_permitirCadastroAteOLimiteDeQuatroPlanos() {
+        Servidor coordenadorProjeto = servidorBaseEquipe();
+        Projeto projeto = projetoBaseEquipe(coordenadorProjeto);
+        Membro membro = membroValido("98765432100");
+        projetoService.adicionarMembro(projeto, membro, coordenadorProjeto);
+
+        for (int i = 1; i <= 4; i++) {
+            PlanoDeTrabalho plano = new PlanoDeTrabalho("Plano " + i, "Atividades do plano " + i);
+            assertDoesNotThrow(() ->
+                    projetoService.adicionarPlanoDeTrabalho(projeto, "98765432100", plano, coordenadorProjeto));
+        }
+
+        assertEquals(4, membro.getPlanosDeTrabalho().size());
+    }
+
+    // CT-069 — Rejeitar adição acima do limite de planos
+    @Test
+    public void ct069_rejeitarAdicaoAcimaDoLimiteDePlanos() {
+        Servidor coordenadorProjeto = servidorBaseEquipe();
+        Projeto projeto = projetoBaseEquipe(coordenadorProjeto);
+        Membro membro = membroValido("98765432100");
+        projetoService.adicionarMembro(projeto, membro, coordenadorProjeto);
+
+        for (int i = 1; i <= 4; i++) {
+            projetoService.adicionarPlanoDeTrabalho(
+                    projeto, "98765432100",
+                    new PlanoDeTrabalho("Plano " + i, "Atividades do plano " + i),
+                    coordenadorProjeto
+            );
+        }
+
+        Exception ex = assertThrows(IllegalStateException.class, () ->
+                projetoService.adicionarPlanoDeTrabalho(
+                        projeto, "98765432100",
+                        new PlanoDeTrabalho("Plano 5", "Atividades do plano 5"),
+                        coordenadorProjeto
+                ));
+
+        assertTrue(ex.getMessage().contains("4"));
+        assertEquals(4, membro.getPlanosDeTrabalho().size());
+    }
+
+    // CT-070 — Rejeitar membro com CPF inválido
+    @Test
+    public void ct070_rejeitarMembroComCpfInvalido() {
+        Exception ex = assertThrows(IllegalArgumentException.class, () ->
+                new Membro("João Pedro Alves", "123", FuncaoMembro.BOLSISTA, 20));
+
+        assertTrue(ex.getMessage().toLowerCase().contains("cpf"));
+    }
+
+    // CT-071 — Aceitar membro com CPF válido e único
+    @Test
+    public void ct071_aceitarMembroComCpfValidoEUnico() {
+        Servidor coordenadorProjeto = servidorBaseEquipe();
+        Projeto projeto = projetoBaseEquipe(coordenadorProjeto);
+        Membro membro = membroValido("98765432100");
+
+        assertDoesNotThrow(() -> projetoService.adicionarMembro(projeto, membro, coordenadorProjeto));
+
+        assertEquals("98765432100", projeto.getEquipe().get(0).getCpf());
+    }
+
+    // CT-072 — Rejeitar adição de membro com CPF já cadastrado
+    @Test
+    public void ct072_rejeitarAdicaoDeMembroComCpfJaCadastrado() {
+        Servidor coordenadorProjeto = servidorBaseEquipe();
+        Projeto projeto = projetoBaseEquipe(coordenadorProjeto);
+        projetoService.adicionarMembro(projeto, membroValido("98765432100"), coordenadorProjeto);
+
+        Membro duplicado = new Membro("Outro Nome", "98765432100", FuncaoMembro.VOLUNTARIO, 10);
+
+        Exception ex = assertThrows(IllegalArgumentException.class, () ->
+                projetoService.adicionarMembro(projeto, duplicado, coordenadorProjeto));
+
+        assertTrue(ex.getMessage().toLowerCase().contains("cpf"));
+        assertEquals(1, projeto.getEquipe().size());
+    }
+
+    // CT-073 — Listar membros da equipe com sucesso
+    @Test
+    public void ct073_listarMembrosDaEquipeComSucesso() {
+        Servidor coordenadorProjeto = servidorBaseEquipe();
+        Projeto projeto = projetoBaseEquipe(coordenadorProjeto);
+        Membro membro1 = membroValido("98765432100");
+        Membro membro2 = new Membro("Carla Souza", "11223344556", FuncaoMembro.VOLUNTARIO, 10);
+        projetoService.adicionarMembro(projeto, membro1, coordenadorProjeto);
+        projetoService.adicionarMembro(projeto, membro2, coordenadorProjeto);
+
+        List<Membro> equipe = assertDoesNotThrow(() ->
+                projetoService.listarEquipe(projeto, coordenadorProjeto));
+
+        assertEquals(2, equipe.size());
+        assertTrue(equipe.contains(membro1));
+        assertTrue(equipe.contains(membro2));
     }
 }
