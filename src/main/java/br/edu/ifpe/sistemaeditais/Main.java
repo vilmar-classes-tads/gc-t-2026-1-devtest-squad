@@ -299,12 +299,27 @@ public class Main {
     private static void cadastrarServidor(Scanner scanner, CadastroServidor cadastroServidor, ServidorRepository repository) {
         System.out.println("\n--- Formulário de Cadastro ---");
 
-        System.out.print("Nome Completo: ");
-        String nome = scanner.nextLine();
+        String nome = "";
+        while (nome.trim().isEmpty()) {
+            System.out.print("Nome Completo: ");
+            if (!scanner.hasNextLine()) {
+                System.out.println("\n[ERRO] Nome completo é obrigatório.");
+                return;
+            }
+
+            nome = scanner.nextLine();
+            if (nome.trim().isEmpty()) {
+                System.out.println("\n[ERRO] Nome completo é obrigatório.");
+            }
+        }
 
         String cpf = null;
         while (cpf == null) {
             System.out.print("CPF (apenas 11 dígitos numéricos): ");
+            if (!scanner.hasNextLine()) {
+                System.out.println("\n[ERRO] Entrada de CPF não encontrada.");
+                return;
+            }
             String entrada = scanner.nextLine().trim();
             try {
                 if (!entrada.matches("\\d{11}"))
@@ -320,6 +335,10 @@ public class Main {
         String email = null;
         while (email == null) {
             System.out.print("E-mail Institucional: ");
+            if (!scanner.hasNextLine()) {
+                System.out.println("\n[ERRO] Entrada de e-mail não encontrada.");
+                return;
+            }
             String entrada = scanner.nextLine().trim();
             try {
                 if (!entrada.matches("^[\\w.+-]+@[\\w.-]+\\.[a-zA-Z]{2,}$"))
@@ -335,6 +354,10 @@ public class Main {
         String senha = null;
         while (senha == null) {
             System.out.print("Senha (mínimo 6 caracteres): ");
+            if (!scanner.hasNextLine()) {
+                System.out.println("\n[ERRO] Entrada de senha não encontrada.");
+                return;
+            }
             String entrada = scanner.nextLine();
             try {
                 if (entrada.length() < 6)
