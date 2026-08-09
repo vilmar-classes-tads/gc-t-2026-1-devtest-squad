@@ -4,6 +4,15 @@ public class PlanoDeTrabalho {
 
     private String titulo;
     private String descricaoAtividades;
+    private byte[] arquivo;
+
+    public byte[] getArquivo() {
+        return arquivo;
+    }
+
+    public void setArquivo(byte[] arquivo) {
+        this.arquivo = arquivo;
+    }
 
     public PlanoDeTrabalho(String titulo, String descricaoAtividades) {
         if (titulo == null || titulo.trim().isEmpty()) {

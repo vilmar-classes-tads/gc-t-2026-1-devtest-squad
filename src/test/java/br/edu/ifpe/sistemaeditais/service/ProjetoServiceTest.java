@@ -1,9 +1,11 @@
 package br.edu.ifpe.sistemaeditais.service;
 
+import java.time.LocalDate;
 import java.util.Collections;
 import java.util.List;
 
 import org.junit.jupiter.api.Assertions;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -23,6 +25,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import br.edu.ifpe.sistemaeditais.model.AreaFormacao;
 import br.edu.ifpe.sistemaeditais.model.AreaTematica;
 import br.edu.ifpe.sistemaeditais.model.Campus;
+import br.edu.ifpe.sistemaeditais.model.Edital;
 import br.edu.ifpe.sistemaeditais.model.FuncaoMembro;
 import br.edu.ifpe.sistemaeditais.model.Membro;
 import br.edu.ifpe.sistemaeditais.model.ODS;
@@ -77,6 +80,59 @@ public class ProjetoServiceTest {
         projeto.setStatus(status);
         return projeto;
     }
+
+    private Projeto projetoParaListagem(Servidor autor, Campus campus,
+                                         AreaTematica area, StatusProjeto status, Edital edital) {
+        Projeto projeto = new Projeto(
+                "Projeto para Listagem",
+                "Resumo do projeto de teste.",
+                "palavras-chave",
+                "Público-alvo",
+                area,
+                campus,
+                List.of(ODS.ODS_4_EDUCACAO_QUALIDADE),
+                true,
+                autor
+        );
+        projeto.setStatus(status);
+        projeto.setEdital(edital);
+        return projeto;
+    }
+ 
+    private Edital editalDeTeste(String numero) {
+        return new Edital(numero, "Edital de Teste", 2026,
+                LocalDate.of(2026, 8, 1), LocalDate.of(2026, 8, 31),
+                LocalDate.of(2026, 9, 1), LocalDate.of(2026, 9, 15));
+    }
+ 
+    private Servidor admin() {
+        Servidor admin = new Servidor(
+                "Admin Geral",
+                "77777777777",
+                "admin.listagem@ifpe.edu.br",
+                "senha123",
+                Campus.RECIFE,
+                AreaFormacao.CIENCIAS_EXATAS_E_DA_TERRA,
+                Titulacao.DOUTORADO
+        );
+        admin.adicionarPerfil(Perfil.ROLE_ADMIN);
+        return admin;
+    }
+ 
+    private Servidor gestor(Campus campusDoGestor) {
+        Servidor gestor = new Servidor(
+                "Gestor de Campus",
+                "88888888888",
+                "gestor.listagem@ifpe.edu.br",
+                "senha123",
+                campusDoGestor,
+                AreaFormacao.CIENCIAS_SOCIAIS_APLICADAS,
+                Titulacao.MESTRADO
+        );
+        gestor.adicionarPerfil(Perfil.ROLE_GESTOR);
+        return gestor;
+    }
+
 
     @Test
     public void ct046_criarProjetoComTituloVazio() {
@@ -621,4 +677,424 @@ public class ProjetoServiceTest {
         assertTrue(equipe.contains(membro1));
         assertTrue(equipe.contains(membro2));
     }
+
+    @Test
+    public void ct074_adminVisualizaTodosProjetos() {
+        Servidor admin = admin();
+
+        Edital e1 = editalDeTeste("01/2026");
+        Edital e2 = editalDeTeste("02/2026");
+
+        Projeto a = projetoParaListagem(coordenador, Campus.RECIFE, AreaTematica.ENGENHARIAS, StatusProjeto.EM_AVALIACAO, e1);
+        Projeto b = projetoParaListagem(coordenador, Campus.IPOJUCA, AreaTematica.ENGENHARIAS, StatusProjeto.RASCUNHO, e1);
+        Projeto c = projetoParaListagem(coordenador, Campus.RECIFE, AreaTematica.CIENCIAS_DA_SAUDE, StatusProjeto.APROVADO, e2);
+        Projeto d = projetoParaListagem(coordenador, Campus.IPOJUCA, AreaTematica.ENGENHARIAS, StatusProjeto.EM_CORRECAO, e2);
+
+        when(projetoRepository.listarTodos()).thenReturn(List.of(a,b,c,d));
+
+        List<Projeto> resultado = projetoService.listarProjetosParaAdmin(admin, null, null, null, null);
+
+        assertEquals(4, resultado.size());
+        assertTrue(resultado.containsAll(List.of(a,b,c,d)));
+    }  
+
+    @Test
+    public void ct075_gestorVisualizaProjetosDoSeuCampus() {
+        Servidor gestor = gestor(Campus.RECIFE);
+
+        Edital e = editalDeTeste("01/2026");
+
+        Projeto a = projetoParaListagem(coordenador, Campus.RECIFE, AreaTematica.ENGENHARIAS, StatusProjeto.SUBMETIDO, e);
+        Projeto b = projetoParaListagem(coordenador, Campus.IPOJUCA, AreaTematica.ENGENHARIAS, StatusProjeto.SUBMETIDO, e);
+
+        when(projetoRepository.listarTodos()).thenReturn(List.of(a,b));
+
+        List<Projeto> resultado = projetoService.listarProjetosParaGestor(gestor);
+
+        assertEquals(1, resultado.size());
+        assertTrue(resultado.contains(a));
+    }
+
+    @Test
+    public void ct076_gestorNaoVisualizaProjetosDeOutrosCampi() {
+        Servidor gestor = gestor(Campus.RECIFE);
+
+        Edital e = editalDeTeste("01/2026");
+
+        Projeto b = projetoParaListagem(coordenador, Campus.IPOJUCA, AreaTematica.ENGENHARIAS, StatusProjeto.SUBMETIDO, e);
+
+        when(projetoRepository.listarTodos()).thenReturn(List.of(b));
+
+        List<Projeto> resultado = projetoService.listarProjetosParaGestor(gestor);
+
+        assertTrue(resultado.isEmpty());
+    }
+
+    @Test
+    public void ct077_gestorVisualizaApenasStatusPermitidos() {
+        Servidor gestor = gestor(Campus.RECIFE);
+
+        Edital e = editalDeTeste("01/2026");
+
+        Projeto permitido1 = projetoParaListagem(coordenador, Campus.RECIFE, AreaTematica.ENGENHARIAS, StatusProjeto.SUBMETIDO, e);
+        Projeto permitido2 = projetoParaListagem(coordenador, Campus.RECIFE, AreaTematica.ENGENHARIAS, StatusProjeto.EM_CORRECAO, e);
+        Projeto bloqueado = projetoParaListagem(coordenador, Campus.RECIFE, AreaTematica.ENGENHARIAS, StatusProjeto.RASCUNHO, e);
+
+        when(projetoRepository.listarTodos()).thenReturn(List.of(permitido1, permitido2, bloqueado));
+
+        List<Projeto> resultado = projetoService.listarProjetosParaGestor(gestor);
+
+        assertEquals(2, resultado.size());
+        assertTrue(resultado.containsAll(List.of(permitido1, permitido2)));
+        assertFalse(resultado.contains(bloqueado));
+    }
+
+    @Test
+    public void ct079_usuarioSemPermissaoNaoAcessaAdmin() {
+        Servidor coordenador = this.coordenador;
+
+        assertThrows(SecurityException.class, () -> {
+            projetoService.listarProjetosParaAdmin(coordenador, null, null, null, null);
+        });
+
+        verifyNoInteractions(projetoRepository);
+    }
+
+    @Test
+    public void ct080_filtrarPorEdital() {
+        Servidor admin = admin();
+
+        Edital e1 = editalDeTeste("01/2026");
+        Edital e2 = editalDeTeste("02/2026");
+
+        Projeto a = projetoParaListagem(coordenador, Campus.RECIFE, AreaTematica.ENGENHARIAS, StatusProjeto.SUBMETIDO, e1);
+        Projeto b = projetoParaListagem(coordenador, Campus.IPOJUCA, AreaTematica.ENGENHARIAS, StatusProjeto.SUBMETIDO, e1);
+        Projeto c = projetoParaListagem(coordenador, Campus.RECIFE, AreaTematica.ENGENHARIAS, StatusProjeto.SUBMETIDO, e2);
+
+        when(projetoRepository.listarTodos()).thenReturn(List.of(a,b,c));
+
+        List<Projeto> resultado = projetoService.listarProjetosParaAdmin(admin, e1, null, null, null);
+
+        assertEquals(2, resultado.size());
+    }
+
+    @Test
+    public void ct081_filtrarPorCampus() {
+        Servidor admin = admin();
+
+        Edital e = editalDeTeste("01/2026");
+
+        Projeto b = projetoParaListagem(coordenador, Campus.IPOJUCA, AreaTematica.ENGENHARIAS, StatusProjeto.SUBMETIDO, e);
+
+        when(projetoRepository.listarTodos()).thenReturn(List.of(b));
+
+        List<Projeto> resultado = projetoService.listarProjetosParaAdmin(admin, null, Campus.IPOJUCA, null, null);
+
+        assertEquals(1, resultado.size());
+        assertTrue(resultado.contains(b));
+    }
+
+    @Test
+    public void ct082_filtrarPorArea() {
+        Servidor admin = admin();
+
+        Edital e = editalDeTeste("01/2026");
+
+        Projeto c = projetoParaListagem(coordenador, Campus.RECIFE, AreaTematica.CIENCIAS_DA_SAUDE, StatusProjeto.SUBMETIDO, e);
+
+        when(projetoRepository.listarTodos()).thenReturn(List.of(c));
+
+        List<Projeto> resultado = projetoService.listarProjetosParaAdmin(admin, null, null, AreaTematica.CIENCIAS_DA_SAUDE, null);
+
+        assertEquals(1, resultado.size());
+    }
+
+    @Test
+    public void ct083_filtrarPorStatus() {
+        Servidor admin = admin();
+
+        Edital e = editalDeTeste("01/2026");
+
+        Projeto b = projetoParaListagem(coordenador, Campus.IPOJUCA, AreaTematica.ENGENHARIAS, StatusProjeto.RASCUNHO, e);
+
+        when(projetoRepository.listarTodos()).thenReturn(List.of(b));
+
+        List<Projeto> resultado = projetoService.listarProjetosParaAdmin(admin, null, null, null, StatusProjeto.RASCUNHO);
+
+        assertEquals(1, resultado.size());
+    }
+
+    @Test
+    public void ct084_filtrarCombinandoMultiplosCriterios() {
+        Servidor admin = admin();
+
+        Edital e1 = editalDeTeste("01/2026");
+        Edital e2 = editalDeTeste("02/2026");
+
+        Projeto a = projetoParaListagem(coordenador, Campus.RECIFE,
+                AreaTematica.ENGENHARIAS, StatusProjeto.SUBMETIDO, e1);
+
+        Projeto b = projetoParaListagem(coordenador, Campus.IPOJUCA,
+                AreaTematica.ENGENHARIAS, StatusProjeto.SUBMETIDO, e1);
+
+        Projeto c = projetoParaListagem(coordenador, Campus.RECIFE,
+                AreaTematica.EDUCACAO, StatusProjeto.SUBMETIDO, e2);
+
+        //único que atende TODOS os critérios
+        Projeto d = projetoParaListagem(coordenador, Campus.IPOJUCA,
+                AreaTematica.EDUCACAO, StatusProjeto.EM_CORRECAO, e2);
+
+        when(projetoRepository.listarTodos()).thenReturn(List.of(a,b,c,d));
+
+        List<Projeto> resultado = projetoService.listarProjetosParaAdmin(
+                admin,
+                e2,
+                Campus.IPOJUCA,
+                AreaTematica.EDUCACAO,
+                StatusProjeto.EM_CORRECAO
+        );
+
+        assertEquals(1, resultado.size());
+        assertTrue(resultado.contains(d));
+    }
+
+    @Test
+    public void ct085_filtrosSemResultadoRetornaListaVazia() {
+        Servidor admin = admin();
+
+        Edital e = editalDeTeste("01/2026");
+
+        Projeto a = projetoParaListagem(coordenador, Campus.RECIFE,
+                AreaTematica.ENGENHARIAS, StatusProjeto.SUBMETIDO, e);
+
+        when(projetoRepository.listarTodos()).thenReturn(List.of(a));
+
+        List<Projeto> resultado = projetoService.listarProjetosParaAdmin(
+                admin,
+                null,
+                Campus.RECIFE,
+                null,
+                StatusProjeto.RASCUNHO // não existe
+        );
+
+        assertTrue(resultado.isEmpty());
+    }
+
+    @Test
+    public void ct086_limparFiltrosRetornaTodos() {
+        Servidor admin = admin();
+
+        Edital e1 = editalDeTeste("01/2026");
+        Edital e2 = editalDeTeste("02/2026");
+
+        Projeto a = projetoParaListagem(coordenador, Campus.RECIFE, AreaTematica.ENGENHARIAS, StatusProjeto.SUBMETIDO, e1);
+        Projeto b = projetoParaListagem(coordenador, Campus.IPOJUCA, AreaTematica.ENGENHARIAS, StatusProjeto.SUBMETIDO, e1);
+        Projeto c = projetoParaListagem(coordenador, Campus.RECIFE, AreaTematica.EDUCACAO, StatusProjeto.SUBMETIDO, e2);
+        Projeto d = projetoParaListagem(coordenador, Campus.IPOJUCA, AreaTematica.EDUCACAO, StatusProjeto.EM_CORRECAO, e2);
+
+        when(projetoRepository.listarTodos()).thenReturn(List.of(a,b,c,d));
+
+        List<Projeto> resultado = projetoService.listarProjetosParaAdmin(
+                admin, null, null, null, null
+        );
+
+        assertEquals(4, resultado.size());
+    }
+
+    @Test
+    public void ct087_gestorNaoFiltraOutroCampus() {
+        Servidor gestor = gestor(Campus.RECIFE);
+
+        Edital e = editalDeTeste("01/2026");
+
+        Projeto recife = projetoParaListagem(coordenador, Campus.RECIFE,
+                AreaTematica.ENGENHARIAS, StatusProjeto.SUBMETIDO, e);
+
+        Projeto ipojuca = projetoParaListagem(coordenador, Campus.IPOJUCA,
+                AreaTematica.ENGENHARIAS, StatusProjeto.SUBMETIDO, e);
+
+        when(projetoRepository.listarTodos()).thenReturn(List.of(recife, ipojuca));
+
+        List<Projeto> resultado = projetoService.listarProjetosParaGestor(gestor);
+
+        assertEquals(1, resultado.size());
+        assertTrue(resultado.contains(recife));
+    }
+
+    @Test
+    public void ct088_statusGestorRestritoAoPermitido() {
+        Servidor gestor = gestor(Campus.RECIFE);
+
+        Edital e = editalDeTeste("01/2026");
+
+        Projeto permitido = projetoParaListagem(coordenador, Campus.RECIFE,
+                AreaTematica.ENGENHARIAS, StatusProjeto.EM_AVALIACAO, e);
+
+        Projeto bloqueado = projetoParaListagem(coordenador, Campus.RECIFE,
+                AreaTematica.ENGENHARIAS, StatusProjeto.RASCUNHO, e);
+
+        when(projetoRepository.listarTodos()).thenReturn(List.of(permitido, bloqueado));
+
+        List<Projeto> resultado = projetoService.listarProjetosParaGestor(gestor);
+
+        assertEquals(1, resultado.size());
+        assertTrue(resultado.contains(permitido));
+        assertFalse(resultado.contains(bloqueado));
+    }
+
+    // CT-089 — Admin Geral baixa anexo de projeto do qual não é dono
+    @Test
+    public void ct089_adminGeralBaixaAnexoDeProjetoQueNaoEDono() {
+        Servidor admin = admin();
+
+        Projeto projeto = projetoParaListagem(
+                coordenador,
+                Campus.RECIFE,
+                AreaTematica.ENGENHARIAS,
+                StatusProjeto.SUBMETIDO,
+                editalDeTeste("01/2026")
+        );
+
+        byte[] anexo = new byte[] {1, 2, 3, 4, 5};
+        projeto.setAnexo(anexo);
+
+        when(projetoRepository.buscarPorId(1L)).thenReturn(projeto);
+
+        byte[] resultado = assertDoesNotThrow(() ->
+                projetoService.baixarAnexo(1L, admin)
+        );
+
+        assertArrayEquals(anexo, resultado);
+        assertEquals(coordenador, projeto.getCoordenador());
+
+        verify(projetoRepository, times(1)).buscarPorId(1L);
+    }
+
+    // CT-090 — Gestor/Diretor baixa anexo e plano de projeto do seu Campus sem ser dono
+    @Test
+    public void ct090_gestorBaixaAnexoEPlanoDeProjetoDoSeuCampus() {
+        Servidor gestor = gestor(Campus.RECIFE);
+
+        Projeto projeto = projetoParaListagem(
+                coordenador,
+                Campus.RECIFE,
+                AreaTematica.ENGENHARIAS,
+                StatusProjeto.SUBMETIDO,
+                editalDeTeste("01/2026")
+        );
+
+        byte[] anexo = new byte[] {1, 2, 3};
+        projeto.setAnexo(anexo);
+
+        Membro membro = membroValido("98765432100");
+
+        PlanoDeTrabalho plano = new PlanoDeTrabalho(
+                "Plano de Trabalho Teste",
+                "Atividades do plano de trabalho."
+        );
+
+        byte[] arquivoPlano = new byte[] {10, 20, 30};
+
+        plano.setArquivo(arquivoPlano);
+
+        projeto.adicionarMembro(membro);
+        membro.adicionarPlanoDeTrabalho(plano);
+
+        when(projetoRepository.buscarPorId(1L)).thenReturn(projeto);
+
+        // Gestor é do mesmo Campus, mas não é dono do projeto
+        assertEquals(Campus.RECIFE, gestor.getCampus());
+        assertEquals(Campus.RECIFE, projeto.getCampus());
+        assertEquals(coordenador, projeto.getCoordenador());
+        assertFalse(gestor.equals(projeto.getCoordenador()));
+
+        byte[] resultadoAnexo = assertDoesNotThrow(() ->
+                projetoService.baixarAnexo(1L, gestor)
+        );
+
+        byte[] resultadoPlano = assertDoesNotThrow(() ->
+                projetoService.baixarPlanoDeTrabalho(
+                        1L,
+                        "98765432100",
+                        gestor
+                )
+        );
+
+        assertArrayEquals(anexo, resultadoAnexo);
+        assertArrayEquals(arquivoPlano, resultadoPlano);
+
+        verify(projetoRepository, times(2)).buscarPorId(1L);
+    }
+
+    // CT-091 — Rejeitar download de arquivo de projeto fora do escopo via URL/ID
+    @Test
+    public void ct091_rejeitarDownloadDeProjetoForaDoEscopo() {
+        Servidor gestor = gestor(Campus.RECIFE);
+
+        Projeto projetoIpojuca = projetoParaListagem(
+                coordenador,
+                Campus.IPOJUCA,
+                AreaTematica.ENGENHARIAS,
+                StatusProjeto.SUBMETIDO,
+                editalDeTeste("01/2026")
+        );
+
+        byte[] anexo = new byte[] {1, 2, 3, 4};
+        projetoIpojuca.setAnexo(anexo);
+
+        when(projetoRepository.buscarPorId(2L)).thenReturn(projetoIpojuca);
+
+        Exception ex = assertThrows(SecurityException.class, () ->
+                projetoService.baixarAnexo(2L, gestor)
+        );
+
+        assertEquals("Acesso negado ao arquivo.", ex.getMessage());
+
+        assertEquals(Campus.RECIFE, gestor.getCampus());
+        assertEquals(Campus.IPOJUCA, projetoIpojuca.getCampus());
+
+        verify(projetoRepository, times(1)).buscarPorId(2L);
+    }
+
+    // CT-092 — Desabilitar download quando projeto não possui arquivo
+    @Test
+    public void ct092_desabilitarDownloadQuandoProjetoNaoPossuiAnexo() {
+        Servidor admin = admin();
+
+        Projeto projetoSemAnexo = projetoParaListagem(
+                coordenador,
+                Campus.IPOJUCA,
+                AreaTematica.ENGENHARIAS,
+                StatusProjeto.SUBMETIDO,
+                editalDeTeste("01/2026")
+        );
+
+        // Não cadastra anexo
+        assertEquals(null, projetoSemAnexo.getAnexo());
+
+        when(projetoRepository.buscarPorId(2L)).thenReturn(projetoSemAnexo);
+
+        Exception ex = assertThrows(IllegalStateException.class, () ->
+                projetoService.baixarAnexo(2L, admin)
+        );
+
+        assertEquals("Projeto não possui anexo.", ex.getMessage());
+
+        verify(projetoRepository, times(1)).buscarPorId(2L);
+    }
+
+    @Test
+    public void ct093_gestorSemProjetosRetornaListaVazia() {
+        Servidor gestor = gestor(Campus.RECIFE);
+
+        when(projetoRepository.listarTodos()).thenReturn(List.of());
+
+        List<Projeto> resultado = projetoService.listarProjetosParaGestor(gestor);
+
+        assertTrue(resultado.isEmpty());
+    }
+
+    
+    
+
 }
