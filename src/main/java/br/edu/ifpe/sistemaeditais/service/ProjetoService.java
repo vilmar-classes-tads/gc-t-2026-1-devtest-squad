@@ -2,8 +2,10 @@ package br.edu.ifpe.sistemaeditais.service;
 
 import br.edu.ifpe.sistemaeditais.model.AreaTematica;
 import br.edu.ifpe.sistemaeditais.model.Campus;
+import br.edu.ifpe.sistemaeditais.model.Membro;
 import br.edu.ifpe.sistemaeditais.model.ODS;
 import br.edu.ifpe.sistemaeditais.model.Perfil;
+import br.edu.ifpe.sistemaeditais.model.PlanoDeTrabalho;
 import br.edu.ifpe.sistemaeditais.model.Projeto;
 import br.edu.ifpe.sistemaeditais.model.Servidor;
 import br.edu.ifpe.sistemaeditais.repository.ProjetoRepository;
@@ -53,6 +55,44 @@ public class ProjetoService {
             throw new SecurityException("Apenas administradores podem listar todos os projetos.");
         }
         return projetoRepository.listarTodos();
+    }
+
+    public void adicionarMembro(Projeto projeto, Membro membro, Servidor solicitante) {
+        validarCoordenador(solicitante);
+        validarDonoDoProjeto(projeto, solicitante);
+        projeto.adicionarMembro(membro);
+    }
+
+    public void removerMembro(Projeto projeto, String cpfMembro, Servidor solicitante) {
+        validarCoordenador(solicitante);
+        validarDonoDoProjeto(projeto, solicitante);
+        projeto.removerMembro(cpfMembro);
+    }
+
+    public List<Membro> listarEquipe(Projeto projeto, Servidor solicitante) {
+        validarCoordenador(solicitante);
+        validarDonoDoProjeto(projeto, solicitante);
+        return projeto.getEquipe();
+    }
+
+    public void adicionarPlanoDeTrabalho(Projeto projeto, String cpfMembro,
+                                          PlanoDeTrabalho plano, Servidor solicitante) {
+        validarCoordenador(solicitante);
+        validarDonoDoProjeto(projeto, solicitante);
+        Membro membro = projeto.buscarMembroPorCpf(cpfMembro);
+        if (membro == null) {
+            throw new IllegalArgumentException("Membro não encontrado na equipe do projeto.");
+        }
+        membro.adicionarPlanoDeTrabalho(plano);
+    }
+
+    private void validarDonoDoProjeto(Projeto projeto, Servidor solicitante) {
+        if (projeto == null) {
+            throw new IllegalArgumentException("Projeto não informado.");
+        }
+        if (!projeto.getCoordenador().equals(solicitante)) {
+            throw new SecurityException("Apenas o coordenador do projeto pode gerenciar a equipe.");
+        }
     }
 
     private void validarCoordenador(Servidor servidor) {
