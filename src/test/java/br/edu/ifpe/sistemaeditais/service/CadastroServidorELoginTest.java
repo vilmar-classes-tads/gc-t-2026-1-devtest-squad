@@ -43,15 +43,22 @@ public class CadastroServidorELoginTest {
     @BeforeEach
     public void configurar() throws Exception {
         cadastrarServidorMethod = Main.class.getDeclaredMethod(
-                "cadastrarServidor", Scanner.class, CadastroServidor.class, ServidorRepository.class);
+                "cadastrarServidor",
+                Scanner.class,
+                CadastroServidor.class,
+                ServidorRepository.class
+        );
         cadastrarServidorMethod.setAccessible(true);
 
         realizarLoginMethod = Main.class.getDeclaredMethod(
-                "realizarLogin", Scanner.class, ServidorRepository.class);
+                "realizarLogin",
+                Scanner.class,
+                ServidorRepository.class
+        );
         realizarLoginMethod.setAccessible(true);
 
-        cadastroServidor = new CadastroServidor();
         servidorRepository = new ServidorRepository();
+        cadastroServidor = new CadastroServidor(servidorRepository);
 
         limparRepositorioDeServidores();
     }
