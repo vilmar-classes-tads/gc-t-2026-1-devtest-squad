@@ -61,9 +61,11 @@ public class CadastroServidorTest {
                 "cadastrarServidor", Scanner.class, CadastroServidor.class, ServidorRepository.class);
         cadastrarServidorMethod.setAccessible(true);
 
-        cadastroServidor = new CadastroServidor();
         servidorRepository = new ServidorRepository();
+        cadastroServidor = new CadastroServidor(servidorRepository);
+        
     }
+    
 
     // ---------------------------------------------------------------
     // Utilitários

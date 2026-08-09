@@ -5,6 +5,7 @@ import java.util.List;
 
 public class Projeto {
 
+    private Long id;
     private String titulo;
     private String resumo;
     private String palavrasChave;
@@ -16,6 +17,8 @@ public class Projeto {
     private StatusProjeto status;
     private Servidor coordenador;
     private List<Membro> equipe = new ArrayList<>();
+    private Edital edital;
+    private byte[] anexo;
 
     public Projeto(String titulo, String resumo, String palavrasChave,
                    String publicoAlvo, AreaTematica areaTematica, Campus campus,
@@ -54,6 +57,22 @@ public class Projeto {
         this.aceitouTermoDeCompromisso = aceitouTermoDeCompromisso;
     }
 
+
+    public Long getId() {
+        return id;
+    }
+    public void setId(Long id) {
+    this.id = id;
+}
+
+    public byte[] getAnexo() {
+        return anexo;
+    }
+
+    public void setAnexo(byte[] anexo) {
+        this.anexo = anexo;
+    }
+
     public String getTitulo() { return titulo; }
     public void setTitulo(String titulo) { this.titulo = titulo; }
 
@@ -86,6 +105,8 @@ public class Projeto {
 
     public List<Membro> getEquipe() { return equipe; }
 
+    public Edital getEdital() { return edital; }
+    public void setEdital(Edital edital) { this.edital = edital; }
 
     public void adicionarMembro(Membro membro) {
         if (membro == null) {

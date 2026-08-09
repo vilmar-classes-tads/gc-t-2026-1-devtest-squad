@@ -1,19 +1,22 @@
-C:\Users\Eduarda Rocha\projects\devtestsquad\src\main\java\br\edu\ifpe\sistemaeditais\Main.java
-C:\Users\Eduarda Rocha\projects\devtestsquad\src\main\java\br\edu\ifpe\sistemaeditais\model\AreaFormacao.java
-C:\Users\Eduarda Rocha\projects\devtestsquad\src\main\java\br\edu\ifpe\sistemaeditais\model\AreaTematica.java
-C:\Users\Eduarda Rocha\projects\devtestsquad\src\main\java\br\edu\ifpe\sistemaeditais\model\Campus.java
-C:\Users\Eduarda Rocha\projects\devtestsquad\src\main\java\br\edu\ifpe\sistemaeditais\model\Edital.java
-C:\Users\Eduarda Rocha\projects\devtestsquad\src\main\java\br\edu\ifpe\sistemaeditais\model\ODS.java
-C:\Users\Eduarda Rocha\projects\devtestsquad\src\main\java\br\edu\ifpe\sistemaeditais\model\Perfil.java
-C:\Users\Eduarda Rocha\projects\devtestsquad\src\main\java\br\edu\ifpe\sistemaeditais\model\Projeto.java
-C:\Users\Eduarda Rocha\projects\devtestsquad\src\main\java\br\edu\ifpe\sistemaeditais\model\Servidor.java
-C:\Users\Eduarda Rocha\projects\devtestsquad\src\main\java\br\edu\ifpe\sistemaeditais\model\Sexo.java
-C:\Users\Eduarda Rocha\projects\devtestsquad\src\main\java\br\edu\ifpe\sistemaeditais\model\StatusProjeto.java
-C:\Users\Eduarda Rocha\projects\devtestsquad\src\main\java\br\edu\ifpe\sistemaeditais\model\Titulacao.java
-C:\Users\Eduarda Rocha\projects\devtestsquad\src\main\java\br\edu\ifpe\sistemaeditais\repository\EditalRepository.java
-C:\Users\Eduarda Rocha\projects\devtestsquad\src\main\java\br\edu\ifpe\sistemaeditais\repository\ProjetoRepository.java
-C:\Users\Eduarda Rocha\projects\devtestsquad\src\main\java\br\edu\ifpe\sistemaeditais\repository\ServidorRepository.java
-C:\Users\Eduarda Rocha\projects\devtestsquad\src\main\java\br\edu\ifpe\sistemaeditais\service\CadastroServidor.java
-C:\Users\Eduarda Rocha\projects\devtestsquad\src\main\java\br\edu\ifpe\sistemaeditais\service\EditalService.java
-C:\Users\Eduarda Rocha\projects\devtestsquad\src\main\java\br\edu\ifpe\sistemaeditais\service\ProjetoService.java
-C:\Users\Eduarda Rocha\projects\devtestsquad\src\main\java\br\edu\ifpe\sistemaeditais\util\SenhaUtil.java
+/workspaces/gc-t-2026-1-devtest-squad/src/main/java/br/edu/ifpe/sistemaeditais/Main.java
+/workspaces/gc-t-2026-1-devtest-squad/src/main/java/br/edu/ifpe/sistemaeditais/model/AreaFormacao.java
+/workspaces/gc-t-2026-1-devtest-squad/src/main/java/br/edu/ifpe/sistemaeditais/model/AreaTematica.java
+/workspaces/gc-t-2026-1-devtest-squad/src/main/java/br/edu/ifpe/sistemaeditais/model/Campus.java
+/workspaces/gc-t-2026-1-devtest-squad/src/main/java/br/edu/ifpe/sistemaeditais/model/Edital.java
+/workspaces/gc-t-2026-1-devtest-squad/src/main/java/br/edu/ifpe/sistemaeditais/model/FuncaoMembro.java
+/workspaces/gc-t-2026-1-devtest-squad/src/main/java/br/edu/ifpe/sistemaeditais/model/Membro.java
+/workspaces/gc-t-2026-1-devtest-squad/src/main/java/br/edu/ifpe/sistemaeditais/model/ODS.java
+/workspaces/gc-t-2026-1-devtest-squad/src/main/java/br/edu/ifpe/sistemaeditais/model/Perfil.java
+/workspaces/gc-t-2026-1-devtest-squad/src/main/java/br/edu/ifpe/sistemaeditais/model/PlanoDeTrabalho.java
+/workspaces/gc-t-2026-1-devtest-squad/src/main/java/br/edu/ifpe/sistemaeditais/model/Projeto.java
+/workspaces/gc-t-2026-1-devtest-squad/src/main/java/br/edu/ifpe/sistemaeditais/model/Servidor.java
+/workspaces/gc-t-2026-1-devtest-squad/src/main/java/br/edu/ifpe/sistemaeditais/model/Sexo.java
+/workspaces/gc-t-2026-1-devtest-squad/src/main/java/br/edu/ifpe/sistemaeditais/model/StatusProjeto.java
+/workspaces/gc-t-2026-1-devtest-squad/src/main/java/br/edu/ifpe/sistemaeditais/model/Titulacao.java
+/workspaces/gc-t-2026-1-devtest-squad/src/main/java/br/edu/ifpe/sistemaeditais/repository/EditalRepository.java
+/workspaces/gc-t-2026-1-devtest-squad/src/main/java/br/edu/ifpe/sistemaeditais/repository/ProjetoRepository.java
+/workspaces/gc-t-2026-1-devtest-squad/src/main/java/br/edu/ifpe/sistemaeditais/repository/ServidorRepository.java
+/workspaces/gc-t-2026-1-devtest-squad/src/main/java/br/edu/ifpe/sistemaeditais/service/CadastroServidor.java
+/workspaces/gc-t-2026-1-devtest-squad/src/main/java/br/edu/ifpe/sistemaeditais/service/EditalService.java
+/workspaces/gc-t-2026-1-devtest-squad/src/main/java/br/edu/ifpe/sistemaeditais/service/ProjetoService.java
+/workspaces/gc-t-2026-1-devtest-squad/src/main/java/br/edu/ifpe/sistemaeditais/util/SenhaUtil.java
