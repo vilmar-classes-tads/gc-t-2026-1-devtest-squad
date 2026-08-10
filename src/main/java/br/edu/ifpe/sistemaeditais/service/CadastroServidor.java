@@ -7,11 +7,16 @@ import br.edu.ifpe.sistemaeditais.util.SenhaUtil;
 
 public class CadastroServidor {
 
-    private final ServidorRepository repository = new ServidorRepository();
+    private final ServidorRepository repository;
+
+    public CadastroServidor(ServidorRepository repository) {
+        this.repository = repository;
+    }
 
     public void cadastrar(Servidor novoServidor) {
 
         String senhaPlana = novoServidor.getSenha();
+
         novoServidor.setSenha(SenhaUtil.hash(senhaPlana));
 
         novoServidor.adicionarPerfil(Perfil.ROLE_COORDENADOR);

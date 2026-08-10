@@ -3,50 +3,191 @@ package br.edu.ifpe.sistemaeditais;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
-import java.util.Scanner;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Scanner;
 
 import br.edu.ifpe.sistemaeditais.model.AreaFormacao;
+import br.edu.ifpe.sistemaeditais.model.AreaTematica;
 import br.edu.ifpe.sistemaeditais.model.Campus;
 import br.edu.ifpe.sistemaeditais.model.Edital;
+import br.edu.ifpe.sistemaeditais.model.FuncaoMembro;
+import br.edu.ifpe.sistemaeditais.model.Membro;
+import br.edu.ifpe.sistemaeditais.model.ODS;
 import br.edu.ifpe.sistemaeditais.model.Perfil;
+import br.edu.ifpe.sistemaeditais.model.PlanoDeTrabalho;
+import br.edu.ifpe.sistemaeditais.model.Projeto;
 import br.edu.ifpe.sistemaeditais.model.Servidor;
 import br.edu.ifpe.sistemaeditais.model.Sexo;
+import br.edu.ifpe.sistemaeditais.model.StatusProjeto;
 import br.edu.ifpe.sistemaeditais.model.Titulacao;
-import br.edu.ifpe.sistemaeditais.model.AreaTematica;
-import br.edu.ifpe.sistemaeditais.model.ODS;
-import br.edu.ifpe.sistemaeditais.model.Projeto;
-import br.edu.ifpe.sistemaeditais.repository.ServidorRepository;
 import br.edu.ifpe.sistemaeditais.repository.ProjetoRepository;
+import br.edu.ifpe.sistemaeditais.repository.ServidorRepository;
 import br.edu.ifpe.sistemaeditais.service.CadastroServidor;
 import br.edu.ifpe.sistemaeditais.service.EditalService;
 import br.edu.ifpe.sistemaeditais.service.ProjetoService;
+import br.edu.ifpe.sistemaeditais.util.SenhaUtil;
+
 
 public class Main {
 
     private static Servidor usuarioLogado = null;
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
+    private static void submeterProjetoDefinitivamente(
+                Scanner scanner,
+                ProjetoService service,
+                ProjetoRepository repository) {
+
+            System.out.println("\n--- Submissão Definitiva de Projeto ---");
+            listarMeusProjetos(service);
+
+            String tituloBusca = lerCampoObrigatorio(scanner, "\nDigite o título exato do projeto que deseja submeter: ");
+            Projeto projeto = repository.buscarPorTitulo(tituloBusca);
+
+            if (projeto == null) {
+                System.out.println("[ERRO] Projeto não encontrado.");
+                return;
+            }
+
+            try {
+                service.enviarProjetoParaSubmissao(projeto, usuarioLogado);
+                System.out.println("\nProjeto \"" + projeto.getTitulo() + "\" submetido com sucesso! Novo status: " + projeto.getStatus());
+            } catch (Exception e) {
+                System.out.println("\n[ERRO] " + e.getMessage());
+            }
+        }
+
     public static void main(String[] args) {
-        CadastroServidor cadastroServidor = new CadastroServidor();
         ServidorRepository servidorRepository = new ServidorRepository();
+        CadastroServidor cadastroServidor = new CadastroServidor(servidorRepository);
         EditalService editalService = new EditalService();
         ProjetoRepository projetoRepository = new ProjetoRepository();
         ProjetoService projetoService = new ProjetoService(projetoRepository);
         Scanner scanner = new Scanner(System.in);
 
         // Criando um Administrador padrão inicial para testes do menu restrito
-        Servidor adminPadrao = new Servidor("Administrador Geral", "00000000000", "admin@ifpe.edu.br", "admin123", Campus.RECIFE, AreaFormacao.CIENCIAS_EXATAS_E_DA_TERRA, Titulacao.DOUTORADO);
+        Servidor adminPadrao = new Servidor(
+            "Administrador Geral",
+            "00000000000",
+            "admin@ifpe.edu.br",
+            SenhaUtil.hash("admin123"),
+            Campus.RECIFE,
+            AreaFormacao.CIENCIAS_EXATAS_E_DA_TERRA,
+            Titulacao.DOUTORADO
+        );
         adminPadrao.adicionarPerfil(Perfil.ROLE_ADMIN);
         servidorRepository.salvar(adminPadrao);
 
         int opcao = -1;
 
         // Coordenador padrão para testes de submissão de projetos
-        Servidor coordPadrao = new Servidor("Coordenador Teste", "11111111111","coordenador@ifpe.edu.br", "coord123", Campus.RECIFE, AreaFormacao.ENGENHARIAS, Titulacao.MESTRADO);
+        Servidor coordPadrao = new Servidor(
+            "Coordenador Teste",
+            "11111111111",
+            "coordenador@ifpe.edu.br",
+            SenhaUtil.hash("coord123"),
+            Campus.RECIFE,
+            AreaFormacao.ENGENHARIAS,
+            Titulacao.MESTRADO
+        );
         coordPadrao.adicionarPerfil(Perfil.ROLE_COORDENADOR);
         servidorRepository.salvar(coordPadrao);
+
+
+        Servidor gestorRecife = new Servidor(
+            "Gestor Recife",
+            "22222222222",
+            "gestor@ifpe.edu.br",
+            SenhaUtil.hash("gestor123"),
+            Campus.RECIFE,
+            AreaFormacao.CIENCIAS_SOCIAIS_APLICADAS,
+            Titulacao.MESTRADO
+        );
+        gestorRecife.adicionarPerfil(Perfil.ROLE_GESTOR);
+        servidorRepository.salvar(gestorRecife);
+
+        Servidor coordenadorZ = new Servidor(
+            "Coordenador Z",
+            "33333333333",
+            "coordenadorz@ifpe.edu.br",
+            SenhaUtil.hash("coordz123"),
+            Campus.RECIFE,
+            AreaFormacao.ENGENHARIAS,
+            Titulacao.MESTRADO
+        );
+        coordenadorZ.adicionarPerfil(Perfil.ROLE_COORDENADOR);
+        servidorRepository.salvar(coordenadorZ);
+
+        // PROJETO DE TESTE PARA DOWNLOAD
+
+        Projeto projetoTeste = new Projeto(
+                "Teste",
+                "Projeto criado automaticamente para testar os downloads.",
+                "teste, download, arquivo",
+                "Alunos do IFPE",
+                AreaTematica.EDUCACAO,
+                Campus.RECIFE,
+                List.of(ODS.ODS_10_REDUCAO_DESIGUALDADES),
+                true,
+                coordPadrao
+        );
+
+        projetoTeste.setStatus(StatusProjeto.SUBMETIDO);
+
+        // Criando ANEXO de teste
+
+        String conteudoAnexo =
+                "ARQUIVO DE ANEXO - PROJETO TESTE\n" +
+                "Projeto: Projeto Teste Download\n" +
+                "Este arquivo foi criado apenas para testar o download.";
+
+        projetoTeste.setAnexo(conteudoAnexo.getBytes());
+
+        // Criando MEMBRO da equipe
+
+        Membro membroTeste = new Membro(
+                "Maria da Silva",
+                "00000000000",
+                FuncaoMembro.BOLSISTA,
+                20
+        );
+
+        // Criando PLANO DE TRABALHO
+
+        PlanoDeTrabalho planoTeste = new PlanoDeTrabalho(
+                "Plano de Trabalho - Teste",
+                "Plano criado automaticamente para testar o download."
+        );
+
+        String conteudoPlano =
+                "PLANO DE TRABALHO - PROJETO TESTE\n" +
+                "Membro: Maria da Silva\n" +
+                "CPF: 00000000000\n" +
+                "Carga Horária: 20 horas\n" +
+                "Este arquivo foi criado apenas para testar o download.";
+
+        planoTeste.setArquivo(conteudoPlano.getBytes());
+        membroTeste.adicionarPlanoDeTrabalho(planoTeste);
+
+        projetoTeste.adicionarMembro(membroTeste);
+
+
+        projetoRepository.salvar(projetoTeste);
+
+        System.out.println("\n[TESTE] Projeto de teste criado com sucesso!");
+        System.out.println("Projeto: Projeto Teste Download");
+        System.out.println("Coordenador: coordenador@ifpe.edu.br");
+        System.out.println("Campus: RECIFE");
+        System.out.println("Anexo: disponível");
+        System.out.println("Membro: Maria da Silva");
+        System.out.println("CPF do membro: 00000000000");
+        System.out.println("Plano de Trabalho: disponível");
+
+
+
+
+
 
         do {
             System.out.println("\n   SISTEMA DE EDITAIS - IFPE   ");
@@ -60,7 +201,6 @@ public class Main {
                 System.out.println("1. Cadastrar Novo Servidor");
                 System.out.println("2. Fazer Logout");
                 
-                // Exibição condicional do menu para ROLE_ADMIN
                 if (usuarioLogado.getPerfis().contains(Perfil.ROLE_ADMIN)) {
                     System.out.println("--- ÁREA DO ADMINISTRADOR ---");
                     System.out.println("3. Cadastrar Novo Edital");
@@ -74,6 +214,18 @@ public class Main {
                     System.out.println("7. Submeter Novo Projeto");
                     System.out.println("8. Editar Projeto (Rascunho / Em Correção)");
                     System.out.println("9. Listar Meus Projetos");
+                    System.out.println("12. Submeter Projeto Definitivamente (Rascunho -> SUBMETIDO)");
+                }
+
+                if (usuarioLogado.getPerfis().contains(Perfil.ROLE_GESTOR)) {
+                    System.out.println("--- ÁREA DO GESTOR/DIRETOR ---");
+                    System.out.println("11. Listar Projetos do Campus");
+                }
+
+                if (usuarioLogado.getPerfis().contains(Perfil.ROLE_ADMIN)
+                        || usuarioLogado.getPerfis().contains(Perfil.ROLE_GESTOR)
+                        || usuarioLogado.getPerfis().contains(Perfil.ROLE_COORDENADOR)) {
+                    System.out.println("10. Baixar Arquivo de Projeto");
                 }
             }
             System.out.println("0. Sair");
@@ -124,6 +276,22 @@ public class Main {
                 case 9:
                     if (validarCoordenadorVisual()) listarMeusProjetos(projetoService);
                     break;
+                case 10:
+                    if (validarPermissaoDownloadVisual()) {
+                        baixarArquivoProjeto(scanner, projetoService, projetoRepository);
+                    }
+                    break;
+
+                case 11:
+                    if (validarGestorVisual()) {
+                        listarProjetosDoCampus(projetoService);
+                    }
+                    break;
+                case 12:
+                    if (validarCoordenadorVisual()) {
+                        submeterProjetoDefinitivamente(scanner, projetoService, projetoRepository);
+                    }
+                    break;
                 case 0:
                     System.out.println("\nEncerrando o sistema...");
                     break;
@@ -144,24 +312,39 @@ public class Main {
         return true;
     }
 
-    private static void realizarLogin(Scanner scanner, ServidorRepository repository) {
-    System.out.println("\n--- Login ---");
-    System.out.print("E-mail Institucional: ");
-    String email = scanner.nextLine().trim();
-    System.out.print("Senha: ");
-    String senhaDigitada = scanner.nextLine();
+    private static boolean validarGestorVisual() {
+        if (usuarioLogado == null
+                || (!usuarioLogado.getPerfis().contains(Perfil.ROLE_GESTOR)
+                && !usuarioLogado.getPerfis().contains(Perfil.ROLE_ADMIN))) {
 
-    Servidor servidor = repository.buscaPorEmail(email);
-    
-    String senhaCriptografada = br.edu.ifpe.sistemaeditais.util.SenhaUtil.hash(senhaDigitada);
+            System.out.println(
+                    "\n[ERRO] Acesso negado. Opção restrita a gestores."
+            );
 
-    if (servidor != null && servidor.getSenha() != null && servidor.getSenha().equals(senhaCriptografada)) {
-        usuarioLogado = servidor;
-        System.out.println("\nAutenticação realizada com sucesso!");
-    } else {
-        System.out.println("\n[ERRO] Usuário ou senha inválidos.");
+            return false;
+        }
+
+        return true;
     }
-}
+
+    private static void realizarLogin(Scanner scanner, ServidorRepository repository) {
+        System.out.println("\n--- Login ---");
+        System.out.print("E-mail Institucional: ");
+        String email = scanner.nextLine().trim();
+        System.out.print("Senha: ");
+        String senhaDigitada = scanner.nextLine();
+
+        Servidor servidor = repository.buscaPorEmail(email);
+        
+        String senhaCriptografada = br.edu.ifpe.sistemaeditais.util.SenhaUtil.hash(senhaDigitada);
+
+        if (servidor != null && servidor.getSenha() != null && servidor.getSenha().equals(senhaCriptografada)) {
+            usuarioLogado = servidor;
+            System.out.println("\nAutenticação realizada com sucesso!");
+        } else {
+            System.out.println("\n[ERRO] Usuário ou senha inválidos.");
+        }
+    }
     private static void cadastrarEdital(Scanner scanner, EditalService service) {
         System.out.println("\n--- Cadastro de Edital ---");
         
@@ -299,12 +482,27 @@ public class Main {
     private static void cadastrarServidor(Scanner scanner, CadastroServidor cadastroServidor, ServidorRepository repository) {
         System.out.println("\n--- Formulário de Cadastro ---");
 
-        System.out.print("Nome Completo: ");
-        String nome = scanner.nextLine();
+        String nome = "";
+        while (nome.trim().isEmpty()) {
+            System.out.print("Nome Completo: ");
+            if (!scanner.hasNextLine()) {
+                System.out.println("\n[ERRO] Nome completo é obrigatório.");
+                return;
+            }
+
+            nome = scanner.nextLine();
+            if (nome.trim().isEmpty()) {
+                System.out.println("\n[ERRO] Nome completo é obrigatório.");
+            }
+        }
 
         String cpf = null;
         while (cpf == null) {
             System.out.print("CPF (apenas 11 dígitos numéricos): ");
+            if (!scanner.hasNextLine()) {
+                System.out.println("\n[ERRO] Entrada de CPF não encontrada.");
+                return;
+            }
             String entrada = scanner.nextLine().trim();
             try {
                 if (!entrada.matches("\\d{11}"))
@@ -320,6 +518,10 @@ public class Main {
         String email = null;
         while (email == null) {
             System.out.print("E-mail Institucional: ");
+            if (!scanner.hasNextLine()) {
+                System.out.println("\n[ERRO] Entrada de e-mail não encontrada.");
+                return;
+            }
             String entrada = scanner.nextLine().trim();
             try {
                 if (!entrada.matches("^[\\w.+-]+@[\\w.-]+\\.[a-zA-Z]{2,}$"))
@@ -335,6 +537,10 @@ public class Main {
         String senha = null;
         while (senha == null) {
             System.out.print("Senha (mínimo 6 caracteres): ");
+            if (!scanner.hasNextLine()) {
+                System.out.println("\n[ERRO] Entrada de senha não encontrada.");
+                return;
+            }
             String entrada = scanner.nextLine();
             try {
                 if (entrada.length() < 6)
@@ -410,7 +616,15 @@ public class Main {
         System.out.print("Telefone (opcional — apenas números, pressione Enter para pular): ");
         String telefone = scanner.nextLine();
 
-        Servidor novoServidor = new Servidor(nome, cpf, email, senha, campus, areaFormacao, titulacao);
+        Servidor novoServidor = new Servidor(
+            nome,
+            cpf,
+            email,
+            senha,
+            campus,
+            areaFormacao,
+            titulacao
+        );
 
         if (sexo != null){
             novoServidor.setSexo(sexo);
@@ -441,6 +655,154 @@ public class Main {
             return false;
         }
         return true;
+    }
+
+    private static boolean validarPermissaoDownloadVisual() {
+        if (usuarioLogado == null) {
+            System.out.println("\n[ERRO] Usuário não autenticado.");
+            return false;
+        }
+
+        boolean pode =
+                usuarioLogado.getPerfis().contains(Perfil.ROLE_ADMIN)
+                || usuarioLogado.getPerfis().contains(Perfil.ROLE_GESTOR)
+                || usuarioLogado.getPerfis().contains(Perfil.ROLE_COORDENADOR);
+
+        if (!pode) {
+            System.out.println("\n[ERRO] Você não possui permissão para baixar arquivos.");
+            return false;
+        }
+
+        return true;
+    }
+
+    private static void listarProjetosDoCampus(ProjetoService service) {
+        System.out.println("\n--- Projetos do Campus " + usuarioLogado.getCampus() + " ---");
+
+        try {
+            List<Projeto> projetos = service.listarProjetosParaGestor(usuarioLogado);
+
+            if (projetos.isEmpty()) {
+                System.out.println("Nenhum projeto encontrado.");
+                return;
+            }
+
+            for (Projeto p : projetos) {
+                System.out.printf(
+                        "Título: %s | Status: %s | Campus: %s%n",
+                        p.getTitulo(),
+                        p.getStatus(),
+                        p.getCampus()
+                );
+
+                System.out.println(
+                        "  > Anexo: "
+                        + (p.getAnexo() != null ? "Disponível" : "Não disponível")
+                );
+
+                System.out.println();
+            }
+
+        } catch (Exception e) {
+            System.out.println("[ERRO] " + e.getMessage());
+        }
+    }
+
+    private static void baixarArquivoProjeto(
+            Scanner scanner,
+            ProjetoService service,
+            ProjetoRepository repository) {
+
+        System.out.println("\n--- Download de Arquivo do Projeto ---");
+
+        String titulo = lerCampoObrigatorio(
+                scanner,
+                "Digite o título do projeto: "
+        );
+
+        Projeto projeto = repository.buscarPorTitulo(titulo);
+
+        if (projeto == null) {
+            System.out.println("[ERRO] Projeto não encontrado.");
+            return;
+        }
+
+        System.out.println("\nProjeto: " + projeto.getTitulo());
+        System.out.println("Campus: " + projeto.getCampus());
+
+        System.out.println("\n1. Anexo");
+        System.out.println("2. Plano de Trabalho");
+        System.out.println("0. Cancelar");
+        System.out.print("Escolha o tipo de arquivo: ");
+
+        String opcao = scanner.nextLine().trim();
+
+        try {
+            if (opcao.equals("1")) {
+
+                if (projeto.getAnexo() == null) {
+                    System.out.println(
+                            "[AVISO] Este projeto não possui anexo."
+                    );
+                    return;
+                }
+
+                byte[] arquivo = service.baixarAnexo(
+                        projeto.getId(),
+                        usuarioLogado
+                );
+
+                System.out.println(
+                        "\nDownload realizado com sucesso."
+                );
+                System.out.println(
+                        "Arquivo recebido: " + arquivo.length + " bytes."
+                );
+
+            } else if (opcao.equals("2")) {
+
+                String cpf = lerCampoObrigatorio(
+                        scanner,
+                        "CPF do membro: "
+                );
+
+                byte[] arquivo = service.baixarPlanoDeTrabalho(
+                        projeto.getId(),
+                        cpf,
+                        usuarioLogado
+                );
+
+                System.out.println(
+                        "\nDownload do plano realizado com sucesso."
+                );
+                System.out.println(
+                        "Arquivo recebido: " + arquivo.length + " bytes."
+                );
+
+            } else if (!opcao.equals("0")) {
+
+                System.out.println("[ERRO] Opção inválida.");
+
+            }
+
+        } catch (SecurityException e) {
+
+            System.out.println(
+                    "\n[ACESSO NEGADO] " + e.getMessage()
+            );
+
+        } catch (IllegalStateException e) {
+
+            System.out.println(
+                    "\n[AVISO] " + e.getMessage()
+            );
+
+        } catch (IllegalArgumentException e) {
+
+            System.out.println(
+                    "\n[ERRO] " + e.getMessage()
+            );
+        }
     }
 
     private static void submeterProjeto(Scanner scanner, ProjetoService service) {

@@ -1,9 +1,11 @@
 package br.edu.ifpe.sistemaeditais.model;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class Projeto {
 
+    private Long id;
     private String titulo;
     private String resumo;
     private String palavrasChave;
@@ -14,6 +16,9 @@ public class Projeto {
     private boolean aceitouTermoDeCompromisso;
     private StatusProjeto status;
     private Servidor coordenador;
+    private List<Membro> equipe = new ArrayList<>();
+    private Edital edital;
+    private byte[] anexo;
 
     public Projeto(String titulo, String resumo, String palavrasChave,
                    String publicoAlvo, AreaTematica areaTematica, Campus campus,
@@ -52,6 +57,22 @@ public class Projeto {
         this.aceitouTermoDeCompromisso = aceitouTermoDeCompromisso;
     }
 
+
+    public Long getId() {
+        return id;
+    }
+    public void setId(Long id) {
+    this.id = id;
+}
+
+    public byte[] getAnexo() {
+        return anexo;
+    }
+
+    public void setAnexo(byte[] anexo) {
+        this.anexo = anexo;
+    }
+
     public String getTitulo() { return titulo; }
     public void setTitulo(String titulo) { this.titulo = titulo; }
 
@@ -81,4 +102,36 @@ public class Projeto {
 
     public Servidor getCoordenador() { return coordenador; }
     public void setCoordenador(Servidor coordenador) { this.coordenador = coordenador; }
+
+    public List<Membro> getEquipe() { return equipe; }
+
+    public Edital getEdital() { return edital; }
+    public void setEdital(Edital edital) { this.edital = edital; }
+
+    public void adicionarMembro(Membro membro) {
+        if (membro == null) {
+            throw new IllegalArgumentException("Membro não pode ser nulo.");
+        }
+        boolean cpfJaCadastrado = equipe.stream()
+                .anyMatch(m -> m.getCpf().equals(membro.getCpf()));
+        if (cpfJaCadastrado) {
+            throw new IllegalArgumentException(
+                "Já existe um membro cadastrado com este CPF na equipe do projeto.");
+        }
+        equipe.add(membro);
+    }
+
+    public void removerMembro(String cpf) {
+        boolean removido = equipe.removeIf(m -> m.getCpf().equals(cpf));
+        if (!removido) {
+            throw new IllegalArgumentException("Membro não encontrado na equipe do projeto.");
+        }
+    }
+
+    public Membro buscarMembroPorCpf(String cpf) {
+        return equipe.stream()
+                .filter(m -> m.getCpf().equals(cpf))
+                .findFirst()
+                .orElse(null);
+    }
 }
