@@ -19,6 +19,7 @@ import br.edu.ifpe.sistemaeditais.model.PlanoDeTrabalho;
 import br.edu.ifpe.sistemaeditais.model.Projeto;
 import br.edu.ifpe.sistemaeditais.model.Servidor;
 import br.edu.ifpe.sistemaeditais.model.Sexo;
+import br.edu.ifpe.sistemaeditais.model.StatusProjeto;
 import br.edu.ifpe.sistemaeditais.model.Titulacao;
 import br.edu.ifpe.sistemaeditais.repository.ProjetoRepository;
 import br.edu.ifpe.sistemaeditais.repository.ServidorRepository;
@@ -32,6 +33,30 @@ public class Main {
 
     private static Servidor usuarioLogado = null;
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+
+    private static void submeterProjetoDefinitivamente(
+                Scanner scanner,
+                ProjetoService service,
+                ProjetoRepository repository) {
+
+            System.out.println("\n--- Submissão Definitiva de Projeto ---");
+            listarMeusProjetos(service);
+
+            String tituloBusca = lerCampoObrigatorio(scanner, "\nDigite o título exato do projeto que deseja submeter: ");
+            Projeto projeto = repository.buscarPorTitulo(tituloBusca);
+
+            if (projeto == null) {
+                System.out.println("[ERRO] Projeto não encontrado.");
+                return;
+            }
+
+            try {
+                service.enviarProjetoParaSubmissao(projeto, usuarioLogado);
+                System.out.println("\nProjeto \"" + projeto.getTitulo() + "\" submetido com sucesso! Novo status: " + projeto.getStatus());
+            } catch (Exception e) {
+                System.out.println("\n[ERRO] " + e.getMessage());
+            }
+        }
 
     public static void main(String[] args) {
         ServidorRepository servidorRepository = new ServidorRepository();
@@ -94,7 +119,6 @@ public class Main {
         coordenadorZ.adicionarPerfil(Perfil.ROLE_COORDENADOR);
         servidorRepository.salvar(coordenadorZ);
 
-
         // PROJETO DE TESTE PARA DOWNLOAD
 
         Projeto projetoTeste = new Projeto(
@@ -108,6 +132,8 @@ public class Main {
                 true,
                 coordPadrao
         );
+
+        projetoTeste.setStatus(StatusProjeto.SUBMETIDO);
 
         // Criando ANEXO de teste
 
@@ -188,6 +214,7 @@ public class Main {
                     System.out.println("7. Submeter Novo Projeto");
                     System.out.println("8. Editar Projeto (Rascunho / Em Correção)");
                     System.out.println("9. Listar Meus Projetos");
+                    System.out.println("12. Submeter Projeto Definitivamente (Rascunho -> SUBMETIDO)");
                 }
 
                 if (usuarioLogado.getPerfis().contains(Perfil.ROLE_GESTOR)) {
@@ -258,6 +285,11 @@ public class Main {
                 case 11:
                     if (validarGestorVisual()) {
                         listarProjetosDoCampus(projetoService);
+                    }
+                    break;
+                case 12:
+                    if (validarCoordenadorVisual()) {
+                        submeterProjetoDefinitivamente(scanner, projetoService, projetoRepository);
                     }
                     break;
                 case 0:

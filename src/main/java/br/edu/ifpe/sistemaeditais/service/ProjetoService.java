@@ -221,4 +221,15 @@ public class ProjetoService {
 
         return projeto.getAnexo();
     }
+
+    public void enviarProjetoParaSubmissao(Projeto projeto, Servidor solicitante) {
+        validarCoordenador(solicitante);
+        if (!projeto.getCoordenador().equals(solicitante)) {
+            throw new SecurityException("Apenas o coordenador do projeto pode submetê-lo.");
+        }
+        if (projeto.getStatus() != StatusProjeto.RASCUNHO && projeto.getStatus() != StatusProjeto.EM_CORRECAO) {
+            throw new IllegalStateException("Apenas projetos em RASCUNHO ou EM_CORRECAO podem ser submetidos.");
+        }
+        projeto.setStatus(StatusProjeto.SUBMETIDO);
+    }
 }
